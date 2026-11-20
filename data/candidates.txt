@@ -1,0 +1,249 @@
+# Company job-board names to try. One per line: a slug, optionally "Display Name" after a comma.
+# scripts/find-boards.js tries each one on Greenhouse, Lever and Ashby and keeps the ones that answer.
+# Add any company: the slug is the name in its job-board link (boards.greenhouse.io/<slug>, jobs.lever.co/<slug>, jobs.ashbyhq.com/<slug>).
+airbnb, Airbnb
+stripe, Stripe
+cloudflare, Cloudflare
+datadog, Datadog
+discord, Discord
+gitlab, GitLab
+figma, Figma
+dropbox, Dropbox
+pinterest, Pinterest
+reddit, Reddit
+robinhood, Robinhood
+coinbase, Coinbase
+lyft, Lyft
+instacart, Instacart
+squarespace, Squarespace
+twilio, Twilio
+elastic, Elastic
+mongodb, MongoDB
+okta, Okta
+asana, Asana
+airtable, Airtable
+gusto, Gusto
+brex, Brex
+chime, Chime
+affirm, Affirm
+carta, Carta
+samsara, Samsara
+databricks, Databricks
+scaleai, Scale AI
+anthropic, Anthropic
+duolingo, Duolingo
+peloton, Peloton
+warbyparker, Warby Parker
+glossier, Glossier
+allbirds, Allbirds
+sweetgreen, Sweetgreen
+betterment, Betterment
+oscar, Oscar Health
+zocdoc, Zocdoc
+calm, Calm
+headspace, Headspace
+nerdwallet, NerdWallet
+sofi, SoFi
+toast, Toast
+braze, Braze
+amplitude, Amplitude
+mixpanel, Mixpanel
+webflow, Webflow
+vercel, Vercel
+postman, Postman
+grafanalabs, Grafana Labs
+hashicorp, HashiCorp
+cockroachlabs, Cockroach Labs
+fivetran, Fivetran
+dbtlabsinc, dbt Labs
+sentry, Sentry
+launchdarkly, LaunchDarkly
+pagerduty, PagerDuty
+newrelic, New Relic
+andurilindustries, Anduril
+spacex, SpaceX
+flexport, Flexport
+faire, Faire
+gopuff, Gopuff
+thumbtack, Thumbtack
+nextdoor, Nextdoor
+yelp, Yelp
+etsy, Etsy
+vimeo, Vimeo
+buzzfeed, BuzzFeed
+medium, Medium
+quora, Quora
+grammarly, Grammarly
+canva, Canva
+retool, Retool
+ramp, Ramp
+plaid, Plaid
+rippling, Rippling
+deel, Deel
+gemini, Gemini
+kraken, Kraken
+opendoor, Opendoor
+compass, Compass
+redfin, Redfin
+hims, Hims & Hers
+ro, Ro
+oura, Oura
+whoop, WHOOP
+strava, Strava
+alltrails, AllTrails
+classpass, ClassPass
+mindbody, Mindbody
+palantir, Palantir
+spotify, Spotify
+eventbrite, Eventbrite
+wealthfront, Wealthfront
+attentive, Attentive
+outreach, Outreach
+matterport, Matterport
+zoox, Zoox
+ashby, Ashby
+linear, Linear
+notion, Notion
+openai, OpenAI
+vanta, Vanta
+replit, Replit
+posthog, PostHog
+supabase, Supabase
+anysphere, Cursor (Anysphere)
+perplexity, Perplexity
+clickhouse, ClickHouse
+modal, Modal
+mercury, Mercury
+runway, Runway
+elevenlabs, ElevenLabs
+harvey, Harvey
+hex, Hex
+warp, Warp
+zapier, Zapier
+1password, 1Password
+airbyte, Airbyte
+sourcegraph, Sourcegraph
+dagster, Dagster Labs
+seatgeek, SeatGeek
+away, Away
+casper, Casper
+harrys, Harry's
+everlane, Everlane
+rei, REI
+patagonia, Patagonia
+chewy, Chewy
+hellofresh, HelloFresh
+doordashusa, DoorDash
+uber, Uber
+squareup, Square / Block
+block, Block
+shopify, Shopify
+hubspot, HubSpot
+zendesk, Zendesk
+intercom, Intercom
+atlassian, Atlassian
+slack, Slack
+benchling, Benchling
+tempus, Tempus
+flatiron, Flatiron Health
+color, Color Health
+cerebral, Cerebral
+talkspace, Talkspace
+lyrahealth, Lyra Health
+springhealth, Spring Health
+included, Included Health
+omadahealth, Omada Health
+nurx, Nurx
+cityblock, Cityblock Health
+oneMedical, One Medical
+devoted, Devoted Health
+honor, Honor
+papa, Papa
+care, Care.com
+rover, Rover
+wag, Wag!
+bark, BARK
+turo, Turo
+getaround, Getaround
+vacasa, Vacasa
+sonder, Sonder
+hostaway, Hostaway
+guesty, Guesty
+pacaso, Pacaso
+zumper, Zumper
+apartmentlist, Apartment List
+roofstock, Roofstock
+pendo, Pendo
+gong, Gong
+clari, Clari
+highspot, Highspot
+seismic, Seismic
+salesloft, Salesloft
+apollo, Apollo.io
+zoominfo, ZoomInfo
+klaviyo, Klaviyo
+yotpo, Yotpo
+gorgias, Gorgias
+recharge, Recharge
+shipbob, ShipBob
+shipmonk, ShipMonk
+flexe, Flexe
+stord, Stord
+convoy, Convoy
+project44, project44
+fourkites, FourKites
+samsaraeng, Samsara (alt)
+motive, Motive
+keeptruckin, Motive (alt)
+lattice, Lattice
+cultureamp, Culture Amp
+15five, 15Five
+justworks, Justworks
+remote, Remote
+oysterhr, Oyster
+papayaglobal, Papaya Global
+checkr, Checkr
+greenhouse, Greenhouse
+lever, Lever
+workable, Workable
+indeed, Indeed
+glassdoor, Glassdoor
+ziprecruiter, ZipRecruiter
+handshake, Handshake
+coursera, Coursera
+udemy, Udemy
+masterclass, MasterClass
+khanacademy, Khan Academy
+outschool, Outschool
+quizlet, Quizlet
+chegg, Chegg
+twitch, Twitch
+roblox, Roblox
+epicgames, Epic Games
+riotgames, Riot Games
+niantic, Niantic
+unity, Unity
+discordapp, Discord (alt)
+patreon, Patreon
+substack, Substack
+kickstarter, Kickstarter
+gofundme, GoFundMe
+nytimes, The New York Times
+voxmedia, Vox Media
+axios, Axios
+politico, Politico
+theathletic, The Athletic
+sonos, Sonos
+ring, Ring
+nest, Nest
+wyze, Wyze
+rivian, Rivian
+lucidmotors, Lucid Motors
+waymo, Waymo
+cruise, Cruise
+aurora, Aurora
+nuro, Nuro
+joby, Joby Aviation
+relativity, Relativity Space
+planet, Planet
+astranis, Astranis

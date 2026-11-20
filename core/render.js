@@ -15,10 +15,33 @@ export const LOCALES = {
 };
 
 export const TEMPLATES = {
-  classic: { label: 'Classic', font: "Georgia, 'Times New Roman', serif", accent: '#1f2933', headingStyle: 'border-bottom:1px solid #1f2933;text-transform:uppercase;letter-spacing:.06em;font-size:11pt;', nameAlign: 'center' },
-  modern: { label: 'Modern', font: "'Helvetica Neue', Arial, sans-serif", accent: '#0b5cad', headingStyle: 'color:#0b5cad;font-size:12pt;border-bottom:2px solid #0b5cad;', nameAlign: 'left' },
-  compact: { label: 'Compact', font: "Arial, 'Helvetica Neue', sans-serif", accent: '#222', headingStyle: 'text-transform:uppercase;font-size:10pt;letter-spacing:.08em;background:#f0f0f0;padding:2px 6px;', nameAlign: 'left', compact: true },
+  classic: { label: 'Classic', font: 'georgia', accent: '#1f2933', heading: 'rule-caps', nameAlign: 'center' },
+  modern: { label: 'Modern', font: 'helvetica', accent: '#0b5cad', heading: 'rule-color', nameAlign: 'left' },
+  compact: { label: 'Compact', font: 'arial', accent: '#222222', heading: 'band', nameAlign: 'left', compact: true },
+  sidebar: { label: 'Sidebar (two columns)', font: 'lato', accent: '#2f4ea8', heading: 'rule-color', nameAlign: 'left', sidebar: true, twoColumn: true },
 };
+
+// Fonts: system fonts work offline; web fonts load from Google Fonts when online and fall back otherwise.
+export const FONTS = {
+  georgia: { label: 'Georgia (serif)', css: "Georgia, 'Times New Roman', serif" },
+  garamond: { label: 'EB Garamond (serif)', css: "'EB Garamond', Garamond, Georgia, serif", google: 'EB+Garamond:wght@400;600;700' },
+  merriweather: { label: 'Merriweather (serif)', css: "Merriweather, Georgia, serif", google: 'Merriweather:wght@400;700' },
+  helvetica: { label: 'Helvetica / Arial', css: "'Helvetica Neue', Helvetica, Arial, sans-serif" },
+  arial: { label: 'Arial', css: 'Arial, Helvetica, sans-serif' },
+  lato: { label: 'Lato', css: "Lato, 'Helvetica Neue', Arial, sans-serif", google: 'Lato:wght@400;700' },
+  inter: { label: 'Inter', css: "Inter, 'Helvetica Neue', Arial, sans-serif", google: 'Inter:wght@400;600;700' },
+  sourcesans: { label: 'Source Sans 3', css: "'Source Sans 3', 'Helvetica Neue', Arial, sans-serif", google: 'Source+Sans+3:wght@400;600;700' },
+  roboto: { label: 'Roboto', css: "Roboto, Arial, sans-serif", google: 'Roboto:wght@400;500;700' },
+};
+
+export const ACCENTS = ['#2f4ea8', '#1f2933', '#0f766e', '#9a3412', '#7c2d12', '#6d28d9', '#a16207', '#475569'];
+
+/** Default design settings. Every value is clamped before use. */
+export const DEFAULT_DESIGN = { accent: '', font: '', textSize: 100, lineSpacing: 100, sectionSpacing: 100, margin: 100, photo: false };
+
+const clampN = (v, lo, hi, d) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
+const isHex = (c) => /^#[0-9a-f]{6}$/i.test(c || '');
+const isImage = (src) => /^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=]+$/i.test(src || '');
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -41,81 +64,114 @@ function range(start, end, locale) {
 
 /**
  * @param {object} resume JSON Resume
- * @param {{template?:string, locale?:string}} opts
+ * @param {{template?:string, locale?:string, design?:object}} opts
  * @returns {string} full HTML document
  */
 export function renderResumeHTML(resume, opts = {}) {
   const locale = LOCALES[opts.locale] ? opts.locale : 'us';
   const L = LOCALES[locale];
   const T = TEMPLATES[opts.template] || TEMPLATES.classic;
+  const d = { ...DEFAULT_DESIGN, ...(opts.design || {}) };
+  const accent = isHex(d.accent) ? d.accent : T.accent;
+  const font = FONTS[d.font] || FONTS[T.font];
+  const size = clampN(d.textSize, 80, 125, 100) / 100;
+  const line = clampN(d.lineSpacing, 80, 140, 100) / 100;
+  const gap = clampN(d.sectionSpacing, 50, 200, 100) / 100;
+  const marginScale = clampN(d.margin, 50, 160, 100) / 100;
   const b = resume.basics || {};
-  const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ');
-  const contact = [loc, b.email, b.phone, b.url, ...(b.profiles || []).map((p) => p.url)].filter(Boolean)
-    .map((x) => `<span>${esc(x.replace(/^https?:\/\//, ''))}</span>`).join('<span class="sep"> · </span>');
+  const photo = (T.sidebar || d.photo) && isImage(b.image) ? b.image : '';
 
+  const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ');
+  const contactItems = [loc, b.email, b.phone, b.url, ...(b.profiles || []).map((p) => p.url)].filter(Boolean).map((x) => esc(String(x).replace(/^https?:\/\//, '')));
   const sec = (key, inner) => (inner ? `<section><h2>${esc(L.h[key])}</h2>${inner}</section>` : '');
   const list = (items) => (items?.length ? `<ul>${items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : '');
 
   const work = (resume.work || []).map((w) => `
     <div class="entry">
-      <div class="row"><div><strong>${esc(w.position)}</strong>${w.name ? `${w.position ? ' — ' : ''}${esc(w.name)}` : ''}${w.location ? `, ${esc(w.location)}` : ''}</div><div class="date">${esc(range(w.startDate, w.endDate, locale))}</div></div>
+      <div class="row"><div><strong>${esc(w.position)}</strong>${w.name ? `${w.position ? ' — ' : ''}<span class="org">${esc(w.name)}</span>` : ''}${w.location ? `, ${esc(w.location)}` : ''}</div><div class="date">${esc(range(w.startDate, w.endDate, locale))}</div></div>
       ${w.summary ? `<p>${esc(w.summary)}</p>` : ''}${list(w.highlights)}
     </div>`).join('');
 
   const edu = (resume.education || []).map((e) => `
     <div class="entry">
-      <div class="row"><div><strong>${esc([e.studyType, e.area].filter(Boolean).join(' in '))}</strong>${e.institution ? `${e.studyType || e.area ? ' — ' : ''}${esc(e.institution)}` : ''}</div><div class="date">${esc(range(e.startDate, e.endDate, locale))}</div></div>
+      <div class="row"><div><strong>${esc([e.studyType, e.area].filter(Boolean).join(', '))}</strong>${e.institution ? `${e.studyType || e.area ? ' — ' : ''}${esc(e.institution)}` : ''}</div><div class="date">${esc(range(e.startDate, e.endDate, locale))}</div></div>
       ${list(e.courses)}
     </div>`).join('');
 
   const skillGroups = (resume.skills || []).filter((s) => s.keywords?.length);
-  const skills = skillGroups.map((s) =>
-    `<p>${skillGroups.length > 1 && s.name ? `<strong>${esc(s.name)}:</strong> ` : ''}${esc(s.keywords.join(', '))}</p>`).join('');
+  const skillsInline = skillGroups.map((s) => `<p>${skillGroups.length > 1 && s.name ? `<strong>${esc(s.name)}:</strong> ` : ''}${esc(s.keywords.join(', '))}</p>`).join('');
+  const skillsList = skillGroups.length ? `<ul class="plain">${skillGroups.flatMap((s) => s.keywords).map((k) => `<li>${esc(k)}</li>`).join('')}</ul>` : '';
 
   const simple = (items, nameKey, dateKey) => (items || []).map((p) => `
     <div class="entry"><div class="row"><div><strong>${esc(p[nameKey])}</strong></div><div class="date">${esc(p.startDate ? range(p.startDate, p.endDate, locale) : formatDate(p[dateKey] || p.endDate, locale))}</div></div>${list(p.highlights)}</div>`).join('');
-
-  const langs = (resume.languages || []).map((l) => esc(l.fluency ? `${l.language} (${l.fluency})` : l.language)).join(', ');
+  const langs = (resume.languages || []).map((l) => (l.fluency ? `${esc(l.language)} (${esc(l.fluency)})` : esc(l.language)));
   const vol = (resume.volunteer || []).map((v) => ({ name: [v.position, v.organization].filter(Boolean).join(' — '), startDate: v.startDate, endDate: v.endDate, highlights: v.highlights }));
+  const interests = (resume.interests || []).length ? `<p>${esc(resume.interests.map((i) => i.name).join(', '))}</p>` : '';
 
-  const body = [
+  const mainSections = [
     sec('summary', b.summary ? `<p>${esc(b.summary)}</p>` : ''),
     sec('work', work),
-    sec('education', edu),
-    sec('skills', skills),
+    T.sidebar ? '' : sec('education', edu),
+    T.sidebar ? '' : sec('skills', skillsInline),
     sec('projects', simple(resume.projects, 'name')),
     sec('certificates', simple(resume.certificates, 'name', 'date')),
     sec('volunteer', simple(vol, 'name')),
     sec('awards', simple(resume.awards, 'title', 'date')),
     sec('publications', simple(resume.publications, 'name', 'releaseDate')),
-    sec('languages', langs ? `<p>${langs}</p>` : ''),
-    sec('interests', (resume.interests || []).length ? `<p>${esc(resume.interests.map((i) => i.name).join(', '))}</p>` : ''),
+    T.sidebar ? '' : sec('languages', langs.length ? `<p>${langs.join(', ')}</p>` : ''),
+    T.sidebar ? '' : sec('interests', interests),
   ].join('');
 
-  const fs = T.compact ? '9.5pt' : '10.5pt';
+  const header = `<header>${photo && !T.sidebar ? `<img class="photo" src="${photo}" alt="">` : ''}<div><h1>${esc(b.name)}</h1>${b.label ? `<div class="label">${esc(b.label)}</div>` : ''}${T.sidebar ? '' : `<div class="contact">${contactItems.join('<span class="sep"> · </span>')}</div>`}</div></header>`;
+
+  const sidebarHtml = T.sidebar ? `<aside>
+      ${photo ? `<img class="photo" src="${photo}" alt="">` : ''}
+      ${contactItems.length ? `<section><h2>${esc({ de: 'Kontakt', ch: 'Kontakt', fr: 'Contact' }[locale] || 'Contact')}</h2><ul class="plain">${contactItems.map((c) => `<li>${c}</li>`).join('')}</ul></section>` : ''}
+      ${skillGroups.length ? `<section><h2>${esc(L.h.skills)}</h2>${skillsList}</section>` : ''}
+      ${sec('education', edu)}
+      ${langs.length ? `<section><h2>${esc(L.h.languages)}</h2><ul class="plain">${langs.map((l) => `<li>${l}</li>`).join('')}</ul></section>` : ''}
+      ${sec('interests', interests)}
+    </aside>` : '';
+
+  const headingCss = {
+    'rule-caps': `border-bottom:1px solid ${accent};text-transform:uppercase;letter-spacing:.06em;font-size:${(11 * size).toFixed(1)}pt;color:${accent};`,
+    'rule-color': `color:${accent};font-size:${(12 * size).toFixed(1)}pt;border-bottom:2px solid ${accent};`,
+    band: `text-transform:uppercase;font-size:${(10 * size).toFixed(1)}pt;letter-spacing:.08em;background:${accent}14;color:${accent};padding:2px 6px;`,
+  }[T.heading];
+  const baseSize = (T.compact ? 9.5 : 10.5) * size;
+  const m = { v: (T.compact ? 12 : 16) * marginScale, h: (T.compact ? 14 : 18) * marginScale };
+  const fontLink = font.google ? `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${font.google}&display=swap">` : '';
+
   return `<!DOCTYPE html>
 <html lang="${locale === 'us' || locale === 'uk' ? 'en' : locale === 'ch' ? 'de' : locale}">
-<head><meta charset="utf-8"><title>${esc(b.name || 'Resume')}</title>
+<head><meta charset="utf-8"><title>${esc(b.name || 'Resume')}</title>${fontLink}
 <style>
-@page { size: ${L.page}; margin: ${T.compact ? '12mm 14mm' : '16mm 18mm'}; }
+@page { size: ${L.page}; margin: ${T.sidebar ? 0 : `${m.v.toFixed(1)}mm ${m.h.toFixed(1)}mm`}; }
 * { box-sizing: border-box; }
-body { font-family: ${T.font}; font-size: ${fs}; line-height: 1.38; color: #111; margin: 0; }
-.page { max-width: ${L.page === 'A4' ? '210mm' : '8.5in'}; margin: 0 auto; padding: ${T.compact ? '12mm 14mm' : '16mm 18mm'}; background: #fff; }
-@media print { .page { padding: 0; max-width: none; } }
-header { text-align: ${T.nameAlign}; margin-bottom: 10pt; }
-h1 { font-size: ${T.compact ? '18pt' : '22pt'}; margin: 0; color: ${T.accent}; font-weight: 700; }
-.label { font-size: 11.5pt; margin-top: 2pt; color: #333; }
-.contact { margin-top: 4pt; font-size: 9.5pt; color: #333; }
-h2 { ${T.headingStyle} margin: ${T.compact ? '8pt' : '12pt'} 0 5pt; padding-bottom: 2pt; font-weight: 700; }
+body { font-family: ${font.css}; font-size: ${baseSize.toFixed(2)}pt; line-height: ${(1.38 * line).toFixed(2)}; color: #111; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.page { max-width: ${L.page === 'A4' ? '210mm' : '8.5in'}; margin: 0 auto; background: #fff; ${T.sidebar ? `display: grid; grid-template-columns: 32% 1fr; min-height: ${L.page === 'A4' ? '297mm' : '11in'};` : `padding: ${m.v.toFixed(1)}mm ${m.h.toFixed(1)}mm;`} }
+@media print { .page { max-width: none; ${T.sidebar ? '' : 'padding: 0;'} } }
+header { display: flex; gap: 14pt; align-items: center; ${T.nameAlign === 'center' && !photo ? 'justify-content: center; text-align: center;' : ''} margin-bottom: ${(10 * gap).toFixed(1)}pt; }
+h1 { font-size: ${((T.compact ? 18 : 22) * size).toFixed(1)}pt; margin: 0; color: ${accent}; font-weight: 700; line-height: 1.15; }
+.label { font-size: ${(11.5 * size).toFixed(1)}pt; margin-top: 2pt; color: #333; }
+.contact { margin-top: 4pt; font-size: ${(9.5 * size).toFixed(1)}pt; color: #333; }
+h2 { ${headingCss} margin: ${((T.compact ? 8 : 12) * gap).toFixed(1)}pt 0 5pt; padding-bottom: 2pt; font-weight: 700; }
 p { margin: 2pt 0; }
-ul { margin: 2pt 0 0 0; padding-left: 14pt; }
-li { margin: 1pt 0; }
-.entry { margin-bottom: ${T.compact ? '5pt' : '8pt'}; break-inside: avoid; }
+ul { margin: 2pt 0 0 0; padding-left: 14pt; } li { margin: 1pt 0; }
+ul.plain { list-style: none; padding: 0; } ul.plain li { margin: 2pt 0; overflow-wrap: anywhere; }
+.entry { margin-bottom: ${((T.compact ? 5 : 8) * gap).toFixed(1)}pt; break-inside: avoid; }
 .row { display: flex; justify-content: space-between; gap: 12pt; }
 .date { white-space: nowrap; color: #333; }
+.org { color: ${T.sidebar ? accent : 'inherit'}; }
+img.photo { width: ${T.sidebar ? '34mm' : '26mm'}; height: ${T.sidebar ? '34mm' : '26mm'}; object-fit: cover; border-radius: 50%; flex: none; }
+${T.sidebar ? `aside { background: ${accent}1f; padding: ${(m.v * 1.1).toFixed(1)}mm ${(m.h * 0.6).toFixed(1)}mm; font-size: ${(baseSize * 0.93).toFixed(2)}pt; }
+aside ul.plain li { word-break: normal; overflow-wrap: break-word; hyphens: none; }
+aside img.photo { display: block; margin: 0 auto ${(10 * gap).toFixed(1)}pt; }
+aside h2 { font-size: ${(11 * size).toFixed(1)}pt; }
+aside .row { display: block; } aside .date { color: #555; }
+main { padding: ${(m.v * 1.1).toFixed(1)}mm ${m.h.toFixed(1)}mm; }` : ''}
 </style></head>
 <body><div class="page">
-<header><h1>${esc(b.name)}</h1>${b.label ? `<div class="label">${esc(b.label)}</div>` : ''}<div class="contact">${contact}</div></header>
-${body}
+${T.sidebar ? `${sidebarHtml}<main>${header}${mainSections}</main>` : `${header}${mainSections}`}
 </div></body></html>`;
 }

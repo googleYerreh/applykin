@@ -1,7 +1,10 @@
-# OpenStep (working name)
+# Applykin
+
+**Your job search, on your side.** Free, open-source job-search tools. Live at https://googleyerreh.github.io/applykin/
 
 Free, open-source job-search tools. No account, no paywall, and your data stays on your own device.
 
+- **Design:** four templates (including a two-column sidebar with photo), accent colours, fonts, and sliders for text size, line spacing, section spacing and margins.
 - **Phase 1 – Resume:** import a PDF/Word resume, score it with an open rubric, fix it, export an ATS-friendly PDF.
 - **Phase 2 – Jobs:** a free job feed from public company job boards, match scores that explain themselves, resume tailoring that never invents anything, cover-letter drafts, and an application tracker. AI is optional: a free local model (Ollama) or your own API key.
 
@@ -10,7 +13,7 @@ The same core runs in three places:
 | Surface | What it is | Start it |
 |---|---|---|
 | Web app | One self-contained HTML file. Works offline. | `npm run build`, then open `dist/index.html` |
-| CLI | `parse / score / render / pdf / rubric / jobs fetch / match / tailor / letter` | `node bin/openstep.js --help` |
+| CLI | `parse / score / render / pdf / rubric / jobs fetch / match / tailor / letter` | `node bin/applykin.js --help` |
 | MCP server | 8 tools for AI agents (below) | `node mcp/server.js` (stdio) |
 | Job feed | Scheduled job that writes `jobs.json` for the web app | `node scripts/fetch-jobs.js` |
 
@@ -21,14 +24,14 @@ npm install
 npm test                      # 17 tests
 npm run build                 # -> dist/index.html
 
-node bin/openstep.js score samples/weak.pdf
-node bin/openstep.js parse samples/strong.docx -o maria.json
-node bin/openstep.js pdf maria.json --template modern --locale us -o maria.pdf   # needs Chrome; set CHROME_PATH if not found
+node bin/applykin.js score samples/weak.pdf
+node bin/applykin.js parse samples/strong.docx -o maria.json
+node bin/applykin.js pdf maria.json --template modern --locale us -o maria.pdf   # needs Chrome; set CHROME_PATH if not found
 
-node bin/openstep.js jobs fetch --boards data/boards.json -o jobs.json            # needs internet
-node bin/openstep.js match samples/strong.pdf jobs.json --remote --limit 10
-node bin/openstep.js tailor samples/strong.pdf jobs.json --id <job id> -o tailored.json
-node bin/openstep.js letter samples/strong.pdf jobs.json --id <job id> [--ai ollama]
+node bin/applykin.js jobs fetch --boards data/boards.json -o jobs.json            # needs internet
+node bin/applykin.js match samples/strong.pdf jobs.json --remote --limit 10
+node bin/applykin.js tailor samples/strong.pdf jobs.json --id <job id> -o tailored.json
+node bin/applykin.js letter samples/strong.pdf jobs.json --id <job id> [--ai ollama]
 ```
 
 ## Deploying the free job site (GitHub Pages, $0)
@@ -37,7 +40,9 @@ node bin/openstep.js letter samples/strong.pdf jobs.json --id <job id> [--ai oll
 2. `.github/workflows/fetch-jobs.yml` runs every 6 hours: it tests, builds `dist/index.html`, collects jobs into `dist/jobs.json`, and publishes both.
 3. The web app loads `jobs.json` from its own address, so visitors get fresh jobs with no server of yours.
 
-Add companies in `data/boards.json` (`{ "source": "greenhouse", "slug": "gitlab", "company": "GitLab" }`). The slug is the name in the company's job-board URL. Boards marked `verified` answered when the list was made; a wrong slug just logs an error.
+**Find more employers automatically:** add company names to `data/candidates.txt` and run `npm run find-boards`. It tries each one on Greenhouse, Lever and Ashby and adds the ones with open jobs to `data/boards.json`.
+
+Or add companies to `data/boards.json` by hand (`{ "source": "greenhouse", "slug": "gitlab", "company": "GitLab" }`). The slug is the name in the company's job-board URL. Boards marked `verified` answered when the list was made; a wrong slug just logs an error.
 
 ### Job sources and their terms
 
@@ -59,7 +64,7 @@ Matching runs on your device: 45% skill overlap, 35% job-title similarity and 20
 ```json
 {
   "mcpServers": {
-    "openstep": { "command": "node", "args": ["/path/to/openstep/mcp/server.js"] }
+    "applykin": { "command": "node", "args": ["/path/to/applykin/mcp/server.js"] }
   }
 }
 ```
@@ -92,7 +97,7 @@ Data format: [JSON Resume](https://jsonresume.org/schema), so exports work with 
 
 ## Scoring
 
-Scores are rule-based and fully explained. Run `openstep rubric` or open "How the score works" in the app. Category weights: Completeness 25%, Structure 25%, Clarity 30%, ATS readiness 20%. Each fix shows how many points it adds. There's no percentile ranking: we won't claim one without real, opt-in data.
+Scores are rule-based and fully explained. Run `node bin/applykin.js rubric` or open "How the score works" in the app. Category weights: Completeness 25%, Structure 25%, Clarity 30%, ATS readiness 20%. Each fix shows how many points it adds. There's no percentile ranking: we won't claim one without real, opt-in data.
 
 ## Privacy
 

@@ -1,8 +1,8 @@
-// OpenStep web app. Everything runs in the browser: the resume never leaves this device.
+// Applykin web app. Everything runs in the browser: the resume never leaves this device.
 import * as pdfjs from 'pdfjs-dist/build/pdf.mjs';
 import workerSource from 'pdfjs-dist/build/pdf.worker.min.mjs';
 import mammoth from 'mammoth/mammoth.browser.min.js';
-import { parseResume, scoreResume, renderResumeHTML, extractPdfText, extractDocxText, detectKind, RUBRIC, CATEGORIES, LOCALES, TEMPLATES } from '../core/index.js';
+import { parseResume, scoreResume, renderResumeHTML, extractPdfText, extractDocxText, detectKind, RUBRIC, CATEGORIES, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN } from '../core/index.js';
 import { SAMPLES } from './samples.js';
 import { initJobs } from './jobs-ui.js';
 
@@ -10,18 +10,20 @@ pdfjs.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([workerSource
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const STORE = 'openstep.v1';
+const STORE = 'applykin.v1';
+const OLD_STORE = 'openstep.v1'; // data saved before the rename
 
-const state = { resume: null, template: 'classic', locale: 'us', fileName: '' };
+const state = { resume: null, template: 'classic', locale: 'us', fileName: '', design: { ...DEFAULT_DESIGN } };
+const renderOpts = () => ({ template: state.template, locale: state.locale, design: state.design });
 
 // ---------- storage (best effort; some contexts block it) ----------
 function save() {
-  try { localStorage.setItem(STORE, JSON.stringify({ resume: state.resume, template: state.template, locale: state.locale })); } catch {}
+  try { localStorage.setItem(STORE, JSON.stringify({ resume: state.resume, template: state.template, locale: state.locale, design: state.design })); } catch {}
 }
 function restore() {
   try {
-    const s = JSON.parse(localStorage.getItem(STORE) || 'null');
-    if (s?.resume) Object.assign(state, s);
+    const s = JSON.parse(localStorage.getItem(STORE) || localStorage.getItem(OLD_STORE) || 'null');
+    if (s?.resume) Object.assign(state, s, { design: { ...DEFAULT_DESIGN, ...(s.design || {}) } });
   } catch {}
 }
 
@@ -50,7 +52,7 @@ async function importFile(file) {
 
 function load(resume) {
   state.resume = resume;
-  if (/[äöüß]|berufserfahrung|ausbildung/i.test(resume.meta?.openstep?.sourceText || '')) state.locale = state.locale === 'us' ? 'de' : state.locale;
+  if (/[äöüß]|berufserfahrung|ausbildung/i.test(resume.meta?.applykin?.sourceText || '')) state.locale = state.locale === 'us' ? 'de' : state.locale;
   save();
   $('#start').hidden = true;
   $('#workspace').hidden = false;
@@ -86,7 +88,7 @@ function refresh() {
   $('#rubric').innerHTML = Object.entries(CATEGORIES).map(([k, c]) => `
     <h4>${esc(c.label)} <small>${Math.round(c.weight * 100)}% of total</small></h4>
     <ul>${s.checks.filter((x) => x.category === k).map((x) => `<li data-state="${x.score === null ? 'na' : x.score >= 1 ? 'pass' : x.score > 0 ? 'part' : 'fail'}"><span class="dot"></span><span><b>${esc(x.title)}</b> <small>weight ${x.weight}</small><br>${esc(x.detail)}</span></li>`).join('')}</ul>`).join('');
-  const html = renderResumeHTML(r, { template: state.template, locale: state.locale });
+  const html = renderResumeHTML(r, renderOpts());
   const frame = $('#preview');
   frame.srcdoc = html;
   jobsUI?.onResumeChange();
@@ -113,6 +115,8 @@ function renderEditor() {
       ${field('basics.location.city', 'City', b.location.city)}
       ${field('basics.location.region', 'Region / country', b.location.region)}
       ${field('basics._links', 'Links (one per line)', links, { area: true, rows: 2, wide: true })}
+      <div class="field wide photo-field"><span>Photo (optional, stays on this device)</span>
+        <div class="photo-row">${b.image ? `<img src="${b.image}" alt="Your photo">` : ''}<label class="btn ghost small">${b.image ? 'Change photo' : 'Add photo'}<input type="file" id="photo-input" accept="image/png,image/jpeg,image/webp" hidden></label>${b.image ? '<button type="button" class="btn ghost small" data-photo-remove>Remove</button>' : ''}</div></div>
     </div></details>
     <details open><summary>Summary</summary>${field('basics.summary', '2–3 sentences', b.summary, { area: true, rows: 4, wide: true })}</details>
     <details open><summary>Experience <small>${r.work.length}</small></summary>
@@ -175,6 +179,7 @@ function onEditorClick(e) {
   if (btn.dataset.add === 'work') r.work.unshift({ position: '', name: '', startDate: '', endDate: '', highlights: [] });
   else if (btn.dataset.add === 'education') r.education.push({ institution: '', studyType: '', area: '', startDate: '', endDate: '' });
   else if (btn.dataset.del) { const [k, i] = btn.dataset.del.split('.'); r[k].splice(Number(i), 1); }
+  else if ('photoRemove' in btn.dataset) { delete r.basics.image; }
   else if (btn.dataset.move) { const [k, i, d] = btn.dataset.move.split('.'); const a = Number(i), b2 = a + Number(d); [r[k][a], r[k][b2]] = [r[k][b2], r[k][a]]; }
   else return;
   const open = [...document.querySelectorAll('#editor details')].map((d) => d.open);
@@ -215,7 +220,7 @@ function exportJSON() {
   download(baseName() + '.resume.json', JSON.stringify(rest, null, 2), 'application/json');
 }
 function exportHTML() {
-  download(baseName() + '.html', renderResumeHTML(state.resume, { template: state.template, locale: state.locale }), 'text/html');
+  download(baseName() + '.html', renderResumeHTML(state.resume, renderOpts()), 'text/html');
 }
 function setStatusInline(msg) { $('#print-note').textContent = msg; }
 
@@ -227,7 +232,7 @@ function exportPDF() {
     frame.contentWindow.print();
   } catch {
     // Fallback where printing a frame is blocked: open the page for printing.
-    const w = window.open(URL.createObjectURL(new Blob([renderResumeHTML(state.resume, { template: state.template, locale: state.locale })], { type: 'text/html' })));
+    const w = window.open(URL.createObjectURL(new Blob([renderResumeHTML(state.resume, renderOpts())], { type: 'text/html' })));
     if (!w) exportHTML();
   }
 }
@@ -253,7 +258,11 @@ function init() {
 
   $('#editor').addEventListener('input', onEdit);
   $('#editor').addEventListener('click', onEditorClick);
-  $('#template').addEventListener('change', (e) => { state.template = e.target.value; save(); refresh(); });
+  $('#template').addEventListener('change', (e) => { state.template = e.target.value; save(); renderDesign(); refresh(); });
+  $('#design').addEventListener('input', onDesign);
+  $('#design').addEventListener('click', onDesign);
+  $('#d-reset').addEventListener('click', () => { state.design = { ...DEFAULT_DESIGN }; save(); renderDesign(); refresh(); });
+  $('#editor').addEventListener('change', (e) => { if (e.target.id === 'photo-input') onPhoto(e.target.files[0]); });
   $('#locale').addEventListener('change', (e) => { state.locale = e.target.value; save(); refresh(); });
   $('#dl-pdf').addEventListener('click', exportPDF);
   $('#dl-json').addEventListener('click', exportJSON);
@@ -268,6 +277,7 @@ function init() {
   restore();
   $('#template').value = state.template;
   $('#locale').value = state.locale;
+  renderDesign();
   if (state.resume) { $('#start').hidden = true; $('#workspace').hidden = false; $('#new').hidden = false; renderEditor(); refresh(); }
 }
 
@@ -279,6 +289,47 @@ function confirmReset() {
   armed = Date.now(); b.textContent = 'Click again to clear';
   setTimeout(() => { b.textContent = 'Start over'; }, 3000);
   return false;
+}
+
+// ---------- design ----------
+function renderDesign() {
+  const d = state.design;
+  const accent = d.accent || TEMPLATES[state.template].accent;
+  $('#d-accents').innerHTML = ACCENTS.map((c) => `<button type="button" class="swatch" data-accent="${c}" style="background:${c}" aria-label="Accent ${c}" aria-pressed="${c.toLowerCase() === accent.toLowerCase()}"></button>`).join('') +
+    `<label class="swatch custom" title="Pick any colour"><input type="color" id="d-color" value="${/^#[0-9a-f]{6}$/i.test(accent) ? accent : '#2f4ea8'}"></label>`;
+  $('#d-font').innerHTML = `<option value="">Template default</option>` + Object.entries(FONTS).map(([k, f]) => `<option value="${k}">${f.label}</option>`).join('');
+  $('#d-font').value = d.font || '';
+  for (const k of ['textSize', 'lineSpacing', 'sectionSpacing', 'margin']) { $(`#d-${k}`).value = d[k]; $(`#d-${k}-v`).textContent = d[k] + '%'; }
+  $('#d-photo').checked = !!d.photo;
+  $('#d-photo-row').hidden = !!TEMPLATES[state.template].sidebar;
+  $('#ats-warning').hidden = !TEMPLATES[state.template].twoColumn;
+}
+function onDesign(e) {
+  const t = e.target;
+  const sw = t.closest('[data-accent]');
+  if (sw) state.design.accent = sw.dataset.accent;
+  else if (t.id === 'd-color') state.design.accent = t.value;
+  else if (t.id === 'd-font') state.design.font = t.value;
+  else if (t.id === 'd-photo') state.design.photo = t.checked;
+  else if (t.dataset.design) { state.design[t.dataset.design] = Number(t.value); $(`#d-${t.dataset.design}-v`).textContent = t.value + '%'; }
+  else return;
+  if (sw || t.id === 'd-color') renderDesign();
+  save(); scheduleRefresh();
+}
+
+// Headshot: resized in the browser to 400px so the resume file stays small. Never uploaded anywhere.
+async function onPhoto(file) {
+  if (!file || !/^image\/(png|jpe?g|webp)$/.test(file.type)) return;
+  const img = new Image();
+  img.src = URL.createObjectURL(file);
+  await img.decode();
+  const side = Math.min(img.naturalWidth, img.naturalHeight), out = 400;
+  const c = document.createElement('canvas'); c.width = c.height = out;
+  c.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, out, out);
+  state.resume.basics.image = c.toDataURL('image/jpeg', 0.85);
+  URL.revokeObjectURL(img.src);
+  if (!TEMPLATES[state.template].sidebar) state.design.photo = true;
+  save(); renderEditor(); renderDesign(); refresh();
 }
 
 // ---------- tabs ----------

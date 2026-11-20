@@ -1,7 +1,18 @@
 // Open resume scoring rubric. Every rule, weight and fix text is public and editable.
 // Scores are rule-based and explainable; no model call is needed.
 
-export const ACTION_VERBS = new Set(`accelerated achieved acquired adapted addressed administered advised advocated analyzed applied appointed architected arranged assembled assessed assisted attained audited authored automated balanced boosted briefed budgeted built calculated captured centralized chaired championed clarified coached collaborated combined commissioned communicated compiled completed composed computed conceived conceptualized condensed conducted configured consolidated constructed consulted contracted contributed controlled converted convinced coordinated corrected counseled created cultivated cut debugged decreased defined delegated delivered demonstrated deployed designed detected determined developed devised diagnosed directed discovered documented doubled drafted drove earned edited educated eliminated enabled encouraged engineered enhanced ensured established estimated evaluated examined exceeded executed expanded expedited facilitated finalized forecasted formed formulated founded generated grew guided halved handled headed hired identified implemented improved increased influenced initiated innovated inspected installed instituted instructed integrated interviewed introduced invented investigated launched led leveraged lowered maintained managed mapped marketed maximized measured mentored merged migrated minimized modeled modernized monitored motivated negotiated operated optimized orchestrated organized originated overhauled oversaw partnered performed persuaded piloted pioneered planned prepared presented prevented prioritized processed produced programmed projected promoted proposed prototyped provided published purchased raised ran rebuilt recommended reconciled recruited redesigned reduced refactored refined regulated released remodeled renegotiated reorganized replaced reported represented researched resolved restored restructured revamped reviewed revised saved scaled scheduled secured selected served shaped shipped simplified sold solved spearheaded specified standardized streamlined strengthened structured supervised supported surpassed synthesized systematized tested trained transformed translated tripled troubleshot unified upgraded utilized validated won wrote`.split(/\s+/));
+export const ACTION_VERBS = new Set(`averaged reached processed closed booked sourced owned hosted handled answered assisted maintained performed accomplished acted adjusted advanced aligned allocated amplified anchored accelerated achieved acquired adapted addressed administered advised advocated analyzed applied appointed architected arranged assembled assessed assisted attained audited authored automated balanced boosted briefed budgeted built calculated captured centralized chaired championed clarified coached collaborated combined commissioned communicated compiled completed composed computed conceived conceptualized condensed conducted configured consolidated constructed consulted contracted contributed controlled converted convinced coordinated corrected counseled created cultivated cut debugged decreased defined delegated delivered demonstrated deployed designed detected determined developed devised diagnosed directed discovered documented doubled drafted drove earned edited educated eliminated enabled encouraged engineered enhanced ensured established estimated evaluated examined exceeded executed expanded expedited facilitated finalized forecasted formed formulated founded generated grew guided halved handled headed hired identified implemented improved increased influenced initiated innovated inspected installed instituted instructed integrated interviewed introduced invented investigated launched led leveraged lowered maintained managed mapped marketed maximized measured mentored merged migrated minimized modeled modernized monitored motivated negotiated operated optimized orchestrated organized originated overhauled oversaw partnered performed persuaded piloted pioneered planned prepared presented prevented prioritized processed produced programmed projected promoted proposed prototyped provided published purchased raised ran rebuilt recommended reconciled recruited redesigned reduced refactored refined regulated released remodeled renegotiated reorganized replaced reported represented researched resolved restored restructured revamped reviewed revised saved scaled scheduled secured selected served shaped shipped simplified sold solved spearheaded specified standardized streamlined strengthened structured supervised supported surpassed synthesized systematized tested trained transformed translated tripled troubleshot unified upgraded utilized validated won wrote`.split(/\s+/));
+
+// Present-tense and third-person forms count too: "Lead", "Manages", "Oversee" (current roles).
+const IRREGULAR = { lead: 'led', oversee: 'oversaw', build: 'built', run: 'ran', grow: 'grew', drive: 'drove', win: 'won', write: 'wrote',
+  sell: 'sold', make: 'made', cut: 'cut', teach: 'taught', bring: 'brought', set: 'set', hold: 'held', spearhead: 'spearheaded' };
+export function isActionVerb(word) {
+  const w = String(word || '').toLowerCase().replace(/[^a-z]/g, '');
+  if (!w) return false;
+  const bases = [w, w.replace(/(es|s)$/, ''), w.replace(/s$/, '')];
+  return bases.some((b) => ACTION_VERBS.has(b) || ACTION_VERBS.has(b + 'ed') || ACTION_VERBS.has(b + 'd') ||
+    ACTION_VERBS.has(b.replace(/y$/, 'ied')) || ACTION_VERBS.has(IRREGULAR[b]));
+}
 
 const WEAK_OPENERS = /^(responsible for|duties included|worked on|helped( to)?|assisted with|tasked with|involved in|in charge of|participated in)\b/i;
 const FIRST_PERSON = /\b(i|me|my|mine|we|our)\b/i;
@@ -100,7 +111,7 @@ export const RUBRIC = [
     } },
   { id: 'headings', category: 'structure', weight: 1, title: 'Standard section headings',
     check: (r) => {
-      const unknown = r.meta?.openstep?.unparsed?.filter((u) => u.title) || [];
+      const unknown = r.meta?.applykin?.unparsed?.filter((u) => u.title) || [];
       return unknown.length ? part(0.6, `Unrecognized headings: ${unknown.map((u) => u.title).join(', ')}.`, 'Use standard headings (Summary, Experience, Education, Skills) so ATS software finds each section.') : ok('All headings recognized.');
     } },
 
@@ -108,9 +119,9 @@ export const RUBRIC = [
   { id: 'action-verbs', category: 'clarity', weight: 2.5, title: 'Bullets start with an action verb',
     check: (r) => {
       const b = allBullets(r); if (!b.length) return na();
-      const good = b.filter((x) => ACTION_VERBS.has(words(x)[0]?.toLowerCase().replace(/[^a-z]/g, ''))).length;
+      const good = b.filter((x) => isActionVerb(words(x)[0])).length;
       const s = ratio(good, b.length);
-      return s >= 0.8 ? ok(`${Math.round(s * 100)}% of bullets start with an action verb.`) : part(s / 0.8, `${Math.round(s * 100)}% of bullets start with an action verb.`, 'Start bullets with a past-tense verb: "Led", "Built", "Cut", "Grew".');
+      return s >= 0.8 ? ok(`${Math.round(s * 100)}% of bullets start with an action verb.`) : part(s / 0.8, `${Math.round(s * 100)}% of bullets start with an action verb.`, 'Start bullets with a verb: "Led", "Built", "Cut", "Grew" (present tense like "Lead" is fine for your current job).');
     } },
   { id: 'weak-openers', category: 'clarity', weight: 1, title: 'No "Responsible for…" bullets',
     check: (r) => {
@@ -145,7 +156,7 @@ export const RUBRIC = [
     } },
   { id: 'verb-variety', category: 'clarity', weight: 0.5, title: 'Varied verbs',
     check: (r) => {
-      const v = allBullets(r).map((x) => words(x)[0]?.toLowerCase()).filter((x) => ACTION_VERBS.has(x));
+      const v = allBullets(r).map((x) => words(x)[0]?.toLowerCase()).filter((x) => isActionVerb(x));
       if (v.length < 4) return na();
       const counts = {}; v.forEach((x) => (counts[x] = (counts[x] || 0) + 1));
       const [top, n] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
@@ -155,8 +166,8 @@ export const RUBRIC = [
   // ---------- ATS readiness ----------
   { id: 'text-layer', category: 'ats', weight: 3, title: 'Readable text (not an image)',
     check: (r) => {
-      if (typeof r.meta?.openstep?.sourceText !== 'string') return na(); // JSON input: nothing was extracted
-      const n = words(r.meta.openstep.sourceText).length;
+      if (typeof r.meta?.applykin?.sourceText !== 'string') return na(); // JSON input: nothing was extracted
+      const n = words(r.meta.applykin.sourceText).length;
       if (n < 60) return bad(`Only ${n} words could be read from the file.`, 'Export your resume from Word or Docs as a text PDF. Scanned or image PDFs are invisible to ATS software.');
       return ok(`${n} words read from the file.`);
     } },
@@ -169,7 +180,7 @@ export const RUBRIC = [
     check: (r) => (r.basics?.email && r.basics?.phone) ? ok('Contact details are readable text.') : part(r.basics?.email ? 0.5 : 0, 'Email or phone could not be read.', 'Put contact details in the main text, not in a header/footer or an image.') },
   { id: 'special-chars', category: 'ats', weight: 1, title: 'No odd symbols',
     check: (r) => {
-      const t = r.meta?.openstep?.sourceText || '';
+      const t = r.meta?.applykin?.sourceText || '';
       const odd = (t.match(/[\uf000-\uf8ff\ufffd]/g) || []).length;
       return odd > 3 ? part(0.5, `${odd} unreadable symbols found (icon fonts or broken characters).`, 'Replace icons (phone, mail symbols) with plain words like "Email:".') : ok('No unreadable symbols.');
     } },

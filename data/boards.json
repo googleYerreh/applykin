@@ -1,17 +1,974 @@
 {
   "_readme": "Company job boards to collect. Add a board with {source, slug} (slug = the name in the board's URL) and an optional display name in company. Feeds (arbeitnow) take pages instead of slug. verified=true means the endpoint answered when this list was made.",
   "boards": [
-    { "source": "greenhouse", "slug": "gitlab", "company": "GitLab", "verified": true },
-    { "source": "lever", "slug": "palantir", "company": "Palantir", "verified": true },
-    { "source": "ashby", "slug": "ashby", "company": "Ashby", "verified": true },
-    { "source": "arbeitnow", "pages": 3, "verified": true },
-    { "source": "greenhouse", "slug": "cloudflare", "company": "Cloudflare" },
-    { "source": "greenhouse", "slug": "datadog", "company": "Datadog" },
-    { "source": "greenhouse", "slug": "stripe", "company": "Stripe" },
-    { "source": "greenhouse", "slug": "airbnb", "company": "Airbnb" },
-    { "source": "greenhouse", "slug": "discord", "company": "Discord" },
-    { "source": "ashby", "slug": "linear", "company": "Linear" },
-    { "source": "ashby", "slug": "ramp", "company": "Ramp" },
-    { "source": "lever", "slug": "spotify", "company": "Spotify" }
+    {
+      "source": "greenhouse",
+      "slug": "gitlab",
+      "company": "GitLab",
+      "verified": true
+    },
+    {
+      "source": "lever",
+      "slug": "palantir",
+      "company": "Palantir",
+      "verified": true
+    },
+    {
+      "source": "ashby",
+      "slug": "ashby",
+      "company": "Ashby",
+      "verified": true
+    },
+    {
+      "source": "arbeitnow",
+      "pages": 3,
+      "verified": true
+    },
+    {
+      "source": "greenhouse",
+      "slug": "cloudflare",
+      "company": "Cloudflare"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "datadog",
+      "company": "Datadog"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "stripe",
+      "company": "Stripe"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "airbnb",
+      "company": "Airbnb"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "discord",
+      "company": "Discord"
+    },
+    {
+      "source": "ashby",
+      "slug": "linear",
+      "company": "Linear"
+    },
+    {
+      "source": "ashby",
+      "slug": "ramp",
+      "company": "Ramp"
+    },
+    {
+      "source": "lever",
+      "slug": "spotify",
+      "company": "Spotify"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "dropbox",
+      "company": "Dropbox",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "figma",
+      "company": "Figma",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "reddit",
+      "company": "Reddit",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "pinterest",
+      "company": "Pinterest",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "robinhood",
+      "company": "Robinhood",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "lyft",
+      "company": "Lyft",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "coinbase",
+      "company": "Coinbase",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "instacart",
+      "company": "Instacart",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "squarespace",
+      "company": "Squarespace",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "twilio",
+      "company": "Twilio",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "mongodb",
+      "company": "MongoDB",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "okta",
+      "company": "Okta",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "asana",
+      "company": "Asana",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "airtable",
+      "company": "Airtable",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "gusto",
+      "company": "Gusto",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "brex",
+      "company": "Brex",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "chime",
+      "company": "Chime",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "affirm",
+      "company": "Affirm",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "carta",
+      "company": "Carta",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "elastic",
+      "company": "Elastic",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "samsara",
+      "company": "Samsara",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "scaleai",
+      "company": "Scale AI",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "duolingo",
+      "company": "Duolingo",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "peloton",
+      "company": "Peloton",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "databricks",
+      "company": "Databricks",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "glossier",
+      "company": "Glossier",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "anthropic",
+      "company": "Anthropic",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "sweetgreen",
+      "company": "Sweetgreen",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "betterment",
+      "company": "Betterment",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "oscar",
+      "company": "Oscar Health",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "zocdoc",
+      "company": "Zocdoc",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "calm",
+      "company": "Calm",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "sofi",
+      "company": "SoFi",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "toast",
+      "company": "Toast",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "nerdwallet",
+      "company": "NerdWallet",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "mixpanel",
+      "company": "Mixpanel",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "braze",
+      "company": "Braze",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "vercel",
+      "company": "Vercel",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "amplitude",
+      "company": "Amplitude",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "grafanalabs",
+      "company": "Grafana Labs",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "cockroachlabs",
+      "company": "Cockroach Labs",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "webflow",
+      "company": "Webflow",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "fivetran",
+      "company": "Fivetran",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "launchdarkly",
+      "company": "LaunchDarkly",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "pagerduty",
+      "company": "PagerDuty",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "newrelic",
+      "company": "New Relic",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "spacex",
+      "company": "SpaceX",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "andurilindustries",
+      "company": "Anduril",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "flexport",
+      "company": "Flexport",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "faire",
+      "company": "Faire",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "sentry",
+      "company": "Sentry",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "nextdoor",
+      "company": "Nextdoor",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "thumbtack",
+      "company": "Thumbtack",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "buzzfeed",
+      "company": "BuzzFeed",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "medium",
+      "company": "Medium",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "quora",
+      "company": "Quora",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "ramp",
+      "company": "Ramp",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "plaid",
+      "company": "Plaid",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "gemini",
+      "company": "Gemini",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "lever",
+      "slug": "gopuff",
+      "company": "Gopuff",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "oura",
+      "company": "Oura",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "lever",
+      "slug": "ro",
+      "company": "Ro",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "whoop",
+      "company": "WHOOP",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "strava",
+      "company": "Strava",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "lever",
+      "slug": "alltrails",
+      "company": "AllTrails",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "classpass",
+      "company": "ClassPass",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "mindbody",
+      "company": "Mindbody",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "attentive",
+      "company": "Attentive",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "lever",
+      "slug": "wealthfront",
+      "company": "Wealthfront",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "lever",
+      "slug": "zoox",
+      "company": "Zoox",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "lever",
+      "slug": "outreach",
+      "company": "Outreach",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "notion",
+      "company": "Notion",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "openai",
+      "company": "OpenAI",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "vanta",
+      "company": "Vanta",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "replit",
+      "company": "Replit",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "supabase",
+      "company": "Supabase",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "posthog",
+      "company": "PostHog",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "perplexity",
+      "company": "Perplexity",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "mercury",
+      "company": "Mercury",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "modal",
+      "company": "Modal",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "clickhouse",
+      "company": "ClickHouse",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "runway",
+      "company": "Runway",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "elevenlabs",
+      "company": "ElevenLabs",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "warp",
+      "company": "Warp",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "harvey",
+      "company": "Harvey",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "hex",
+      "company": "Hex",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "zapier",
+      "company": "Zapier",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "1password",
+      "company": "1Password",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "airbyte",
+      "company": "Airbyte",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "seatgeek",
+      "company": "SeatGeek",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "harrys",
+      "company": "Harry's",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "everlane",
+      "company": "Everlane",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "away",
+      "company": "Away",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "hellofresh",
+      "company": "HelloFresh",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "doordashusa",
+      "company": "DoorDash",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "block",
+      "company": "Block",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "intercom",
+      "company": "Intercom",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "benchling",
+      "company": "Benchling",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "talkspace",
+      "company": "Talkspace",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "lever",
+      "slug": "lyrahealth",
+      "company": "Lyra Health",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "omadahealth",
+      "company": "Omada Health",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "oneMedical",
+      "company": "One Medical",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "honor",
+      "company": "Honor",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "papa",
+      "company": "Papa",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "bark",
+      "company": "BARK",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "lever",
+      "slug": "rover",
+      "company": "Rover",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "pacaso",
+      "company": "Pacaso",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "roofstock",
+      "company": "Roofstock",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "pendo",
+      "company": "Pendo",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "sonder",
+      "company": "Sonder",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "salesloft",
+      "company": "Salesloft",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "zoominfo",
+      "company": "ZoomInfo",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "klaviyo",
+      "company": "Klaviyo",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "yotpo",
+      "company": "Yotpo",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "apollo",
+      "company": "Apollo.io",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "shipmonk",
+      "company": "ShipMonk",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "gorgias",
+      "company": "Gorgias",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "recharge",
+      "company": "Recharge",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "flexe",
+      "company": "Flexe",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "project44",
+      "company": "project44",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "fourkites",
+      "company": "FourKites",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "motive",
+      "company": "Motive",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "lattice",
+      "company": "Lattice",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "cultureamp",
+      "company": "Culture Amp",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "justworks",
+      "company": "Justworks",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "remote",
+      "company": "Remote",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "checkr",
+      "company": "Checkr",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "greenhouse",
+      "company": "Greenhouse",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "lever",
+      "slug": "15five",
+      "company": "15Five",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "ziprecruiter",
+      "company": "ZipRecruiter",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "coursera",
+      "company": "Coursera",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "udemy",
+      "company": "Udemy",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "khanacademy",
+      "company": "Khan Academy",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "handshake",
+      "company": "Handshake",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "outschool",
+      "company": "Outschool",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "twitch",
+      "company": "Twitch",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "roblox",
+      "company": "Roblox",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "epicgames",
+      "company": "Epic Games",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "riotgames",
+      "company": "Riot Games",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "kickstarter",
+      "company": "Kickstarter",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "gofundme",
+      "company": "GoFundMe",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "substack",
+      "company": "Substack",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "voxmedia",
+      "company": "Vox Media",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "axios",
+      "company": "Axios",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "ashby",
+      "slug": "patreon",
+      "company": "Patreon",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "lever",
+      "slug": "theathletic",
+      "company": "The Athletic",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "waymo",
+      "company": "Waymo",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "lucidmotors",
+      "company": "Lucid Motors",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "nuro",
+      "company": "Nuro",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "relativity",
+      "company": "Relativity Space",
+      "verified": "2026-11-20"
+    },
+    {
+      "source": "greenhouse",
+      "slug": "astranis",
+      "company": "Astranis",
+      "verified": "2026-11-20"
+    }
   ]
 }

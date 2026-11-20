@@ -64,3 +64,27 @@ test('reads PDF and DOCX files', async () => {
     assert.ok(r.work.length >= 2, f);
   }
 });
+
+test('multi-role employer, wrapped bullets, bulleted education, present tense', () => {
+  const r = parseResume(txt('multirole'));
+  assert.equal(r.basics.location.city, 'Riverside');
+  assert.deepEqual(r.work.map((w) => [w.position, w.name]), [
+    ['Owner & Operations Manager', 'Northwind Goods LLC'],
+    ['General Manager', 'Contoso Fitness'],
+    ['Sales Counselor', 'Contoso Fitness'],
+  ]);
+  assert.match(r.work[1].highlights[0], /112% of quota\.$/, 'wrapped line joins its bullet');
+  assert.deepEqual(r.education.map((e) => [e.studyType, e.area, e.institution]), [
+    ['MBA', 'Finance', 'Example State University'],
+    ['Bachelor of Science', 'Business Administration', 'École Supérieure de Commerce, Lyon, France'],
+  ]);
+  assert.equal(r.languages.length, 2);
+  const s = scoreResume(r);
+  assert.equal(s.checks.find((c) => c.id === 'action-verbs').score, 1, 'Lead / Manage count as action verbs');
+});
+
+test('weak resume: unknown heading stays out of bullets, titles are not cities', () => {
+  const r = parseResume(txt('weak'));
+  assert.deepEqual([r.work[0].position, r.work[0].name], ['Warehouse Associate', 'QuickShip Logistics']);
+  assert.ok(!r.work.some((w) => (w.highlights || []).some((h) => /Stuff I Know/.test(h))));
+});

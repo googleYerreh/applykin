@@ -15,7 +15,7 @@ const { boards } = JSON.parse(await readFile(boardsPath, 'utf8'));
 const started = Date.now();
 const { jobs, errors } = await fetchBoards(boards, fetch, {
   maxAgeDays,
-  headers: { 'user-agent': 'OpenStep job feed (open-source, free job search)' },
+  headers: { 'user-agent': 'Applykin job feed (open-source, free job search)' },
   onProgress: (n, total) => process.stderr.write(`\r${n}/${total} boards`),
 });
 process.stderr.write('\n');

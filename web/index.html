@@ -3,28 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OpenStep — free resume checker</title>
+<title>Applykin — free resume checker and job search</title>
+<meta name="description" content="Free, open-source job search: check your resume, find matching jobs, tailor applications and track them. No account, no paywall, private by design.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='12' cy='16' r='8' fill='none' stroke='%233730c4' stroke-width='4'/%3E%3Ccircle cx='20' cy='16' r='8' fill='none' stroke='%23f2a93b' stroke-width='4'/%3E%3C/svg%3E">
 <style>
 :root {
-  --bg: #f6f5f1; --panel: #fff; --ink: #1b1d1f; --muted: #5f646b; --line: #e3e1da; --accent: #1d5c4d; --accent-soft: #e4efe9;
+  --bg: #f7f4ee; --panel: #fff; --ink: #191a2e; --muted: #5d6070; --line: #e5e1d8; --accent: #3730c4; --accent-soft: #ecebfc; --warm: #f2a93b;
   --good: #23855f; --ok: #c58a12; --low: #c2412d; --radius: 10px;
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-size: 15px; line-height: 1.45; }
 button, input, select, textarea { font: inherit; color: inherit; }
 header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
-.brand { font-weight: 750; font-size: 18px; letter-spacing: -0.01em; }
-.brand span { color: var(--accent); }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 20px; letter-spacing: -0.02em; color: var(--ink); text-decoration: none; }
+.brand b { color: var(--accent); font-weight: 800; }
 .tag { color: var(--muted); font-size: 13px; }
 .tag b { color: var(--accent); font-weight: 600; }
 main { max-width: 1320px; margin: 0 auto; padding: 24px; }
 
 /* start screen */
 #start { max-width: 760px; margin: 32px auto; }
-#start h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 10px; }
+#start h1 { font-size: clamp(30px, 4.4vw, 46px); line-height: 1.08; letter-spacing: -0.025em; margin: 0 0 12px; text-wrap: balance; }
+.h1-sub { color: var(--accent); }
 #start p.lead { color: var(--muted); font-size: 17px; margin: 0 0 24px; }
-#drop { display: block; border: 2px dashed #bdbab0; border-radius: 14px; background: var(--panel); padding: 40px 24px; text-align: center; cursor: pointer; transition: .15s; }
+#drop { display: block; border: 2px dashed #c9c3f2; border-radius: 14px; background: var(--panel); padding: 40px 24px; text-align: center; cursor: pointer; transition: .15s; }
 #drop.over, #drop:hover { border-color: var(--accent); background: var(--accent-soft); }
 #drop strong { display: block; font-size: 18px; margin-bottom: 4px; }
 #drop small { color: var(--muted); }
@@ -154,7 +158,23 @@ a.btn { text-decoration: none; display: inline-block; }
 .card-actions [data-remove] { color: var(--muted); } .card-date { color: var(--muted); font-size: 11px; margin-top: 4px; }
 .settings { max-width: 680px; margin: 0 auto; } .settings p { color: #3d4247; } .settings select { width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px; font-size: 14px; background: #fcfcfa; }
 @media (max-width: 1200px) { .jobs-layout { grid-template-columns: 280px minmax(0, 1fr); } #job-detail { grid-column: 1 / -1; position: static; max-height: none; } }
+@media (max-width: 520px) { .brand span { display: none; } nav.tabs { overflow-x: auto; } }
 @media (max-width: 760px) { .jobs-layout { grid-template-columns: 1fr; } nav.tabs button { padding: 6px 8px; font-size: 13px; } #board { grid-template-columns: repeat(6, 78vw); } }
+
+
+.design { margin-bottom: 12px; padding: 12px 16px; } .design summary { cursor: pointer; font-weight: 650; } .design summary .hint { font-weight: 400; margin-left: 6px; }
+.design-grid { display: grid; gap: 10px; margin-top: 12px; }
+.d-row { display: grid; grid-template-columns: 130px minmax(0, 1fr) 48px; align-items: center; gap: 10px; font-size: 14px; }
+.d-row.check { display: flex; } .d-label { color: var(--muted); font-size: 13px; }
+.d-row select { grid-column: 2 / 4; border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; background: var(--panel); }
+.d-row input[type=range] { accent-color: var(--accent); width: 100%; } .d-row output { font-size: 12px; color: var(--muted); text-align: right; }
+.swatches { grid-column: 2 / 4; display: flex; gap: 8px; flex-wrap: wrap; }
+.swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; position: relative; overflow: hidden; }
+.swatch[aria-pressed=true] { box-shadow: 0 0 0 2px var(--ink); }
+.swatch.custom { background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red); }
+.swatch.custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.btn.small { padding: 6px 10px; font-size: 13px; }
+.photo-row { display: flex; gap: 8px; align-items: center; } .photo-row img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
 
 @media (max-width: 900px) {
   #workspace { grid-template-columns: 1fr; }
@@ -167,7 +187,10 @@ a.btn { text-decoration: none; display: inline-block; }
 </head>
 <body>
 <header class="top">
-  <div class="brand">Open<span>Step</span></div>
+  <a class="brand" href="#resume" aria-label="Applykin home">
+    <svg viewBox="0 0 40 28" width="34" height="24" aria-hidden="true"><circle cx="14" cy="14" r="10" fill="none" stroke="var(--accent)" stroke-width="4.5"/><circle cx="26" cy="14" r="10" fill="none" stroke="var(--warm)" stroke-width="4.5" style="mix-blend-mode:multiply"/></svg>
+    <span>apply<b>kin</b></span>
+  </a>
   <nav class="tabs" aria-label="Sections">
     <button type="button" data-tab="resume">Resume</button>
     <button type="button" data-tab="jobs">Jobs</button>
@@ -179,8 +202,8 @@ a.btn { text-decoration: none; display: inline-block; }
 <main>
 <div data-panel="resume">
   <section id="start">
-    <h1>Check your resume for free.</h1>
-    <p class="lead">Get a score you can understand, a ranked list of fixes, and a clean ATS-friendly PDF. No account, no paywall, no upload to a server.</p>
+    <h1>Your job search, on your side.<br><span class="h1-sub">Free. Open source. No paywall.</span></h1>
+    <p class="lead">Check your resume with a score that explains itself, find jobs that fit you, tailor every application, and track it all. No account, and your resume never leaves your device.</p>
     <label id="drop">
       <input id="file" type="file" accept=".pdf,.docx,.txt,.json,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/json">
       <strong>Drop your resume here, or click to choose</strong>
@@ -226,6 +249,20 @@ a.btn { text-decoration: none; display: inline-block; }
         <button class="btn ghost" id="dl-html" type="button">HTML</button>
         <button class="btn" id="dl-pdf" type="button">Download PDF</button>
       </div>
+      <details class="panel design" id="design">
+        <summary>Design <span class="hint">colours, font, spacing, photo</span></summary>
+        <div class="design-grid">
+          <div class="d-row"><span class="d-label">Accent colour</span><div id="d-accents" class="swatches"></div></div>
+          <label class="d-row"><span class="d-label">Font</span><select id="d-font"></select></label>
+          <label class="d-row"><span class="d-label">Text size</span><input type="range" min="80" max="125" step="1" id="d-textSize" data-design="textSize"><output id="d-textSize-v"></output></label>
+          <label class="d-row"><span class="d-label">Line spacing</span><input type="range" min="80" max="140" step="1" id="d-lineSpacing" data-design="lineSpacing"><output id="d-lineSpacing-v"></output></label>
+          <label class="d-row"><span class="d-label">Section spacing</span><input type="range" min="50" max="200" step="5" id="d-sectionSpacing" data-design="sectionSpacing"><output id="d-sectionSpacing-v"></output></label>
+          <label class="d-row"><span class="d-label">Margins</span><input type="range" min="50" max="160" step="5" id="d-margin" data-design="margin"><output id="d-margin-v"></output></label>
+          <label class="d-row check" id="d-photo-row"><input type="checkbox" id="d-photo"> Show my photo (add it under Contact)</label>
+          <div class="d-row"><span></span><button type="button" class="btn ghost small" id="d-reset">Reset design</button></div>
+        </div>
+      </details>
+      <p class="note" id="ats-warning" hidden>Two-column layouts look good to people, but some applicant tracking systems read the columns out of order. For online applications, a single-column template is safer; use this one for networking and email.</p>
       <div class="paper"><iframe id="preview" title="Resume preview"></iframe></div>
       <p class="footnote" id="print-note">"Download PDF" opens your browser's print dialog. Choose "Save as PDF". The text stays selectable, so ATS software can read it.</p>
     </div>

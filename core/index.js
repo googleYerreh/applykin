@@ -1,6 +1,6 @@
 export { parseResume, normalizeDate, findDateRange } from './parse.js';
 export { scoreResume, RUBRIC, CATEGORIES } from './score.js';
-export { renderResumeHTML, formatDate, LOCALES, TEMPLATES } from './render.js';
+export { renderResumeHTML, formatDate, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN } from './render.js';
 export { extractPdfText, extractDocxText, detectKind } from './extract.js';
 export { SOURCES, fetchSource, fetchBoards, dedupeJobs, finalizeJob, htmlToText, decodeEntities } from './jobs.js';
 export { rankJobs, matchJob, extractSkills, resumeProfile, buildIndex, SKILL_VOCAB } from './match.js';

@@ -4,7 +4,7 @@
 const SECTION_ALIASES = {
   summary: ['summary', 'professional summary', 'profile', 'professional profile', 'about', 'about me', 'objective', 'career objective', 'overview', 'personal statement', 'kurzprofil', 'profil'],
   work: ['experience', 'work experience', 'professional experience', 'employment', 'employment history', 'work history', 'career history', 'relevant experience', 'berufserfahrung', 'experience professionnelle', 'expérience professionnelle'],
-  education: ['education', 'education and training', 'academic background', 'academic history', 'qualifications', 'ausbildung', 'bildung', 'formation'],
+  education: ['education', 'education and training', 'education and certifications', 'education and certificates', 'certifications and education', 'education and qualifications', 'academic background', 'academic history', 'qualifications', 'ausbildung', 'bildung', 'formation'],
   skills: ['skills', 'technical skills', 'core skills', 'key skills', 'core competencies', 'competencies', 'skills and tools', 'tools', 'technologies', 'kenntnisse', 'fähigkeiten', 'compétences'],
   projects: ['projects', 'selected projects', 'personal projects', 'side projects', 'projekte', 'projets'],
   certificates: ['certifications', 'certificates', 'licenses', 'licenses and certifications', 'zertifikate', 'zertifizierungen'],
@@ -13,6 +13,7 @@ const SECTION_ALIASES = {
   volunteer: ['volunteer', 'volunteering', 'volunteer experience', 'community', 'ehrenamt'],
   publications: ['publications', 'publikationen'],
   interests: ['interests', 'hobbies', 'interessen'],
+  additional: ['additional', 'additional information', 'other', 'miscellaneous', 'sonstiges', 'informations complémentaires'],
   references: ['references', 'referenzen'],
 };
 
@@ -108,7 +109,8 @@ function looksLikeRole(s) {
 }
 
 function looksLikeLocation(s) {
-  return /^(remote|hybrid|Remote|Hybrid|REMOTE|[A-Z][A-Za-zÀ-ÿ .'-]+,\s*[A-Z][A-Za-zÀ-ÿ .'-]+)$/.test(s.trim()) && s.length < 40;
+  const t = String(s).replace(/\s*\(.*?\)\s*/g, ' ').trim();
+  return /^(remote|hybrid|Remote|Hybrid|REMOTE|[A-Z][A-Za-zÀ-ÿ .'-]+,\s*[A-Z][A-Za-zÀ-ÿ .'-]+)$/.test(t) && t.length < 45 && !looksLikeRole(t);
 }
 
 // Groups lines of a section into entries. A new entry starts at a non-bullet line
@@ -122,7 +124,8 @@ function groupEntries(lines) {
     const range = findDateRange(line);
     const startNew =
       !cur ||
-      (!bullet && cur.bullets.length > 0 && (range || cur.headers.length === 0 || !isContinuation(line))) ||
+      (!bullet && cur.bullets.length > 0 && (range || cur.headers.length === 0 || !isContinuation(line)) &&
+        !(!range && continuesBullet(cur.bullets[cur.bullets.length - 1], line))) ||
       (range && cur.range);
     if (startNew) {
       cur = { headers: [], bullets: [], range: null };
@@ -130,7 +133,7 @@ function groupEntries(lines) {
     }
     if (bullet) {
       cur.bullets.push(stripBullet(line));
-    } else if (cur.bullets.length > 0 && isContinuation(line)) {
+    } else if (cur.bullets.length > 0 && !range && continuesBullet(cur.bullets[cur.bullets.length - 1], line)) {
       // wrapped bullet text
       cur.bullets[cur.bullets.length - 1] += ' ' + line;
     } else {
@@ -141,57 +144,80 @@ function groupEntries(lines) {
   return entries;
 }
 
+// A line continues the previous bullet when it starts lower-case or with a number, or the bullet
+// ended mid-phrase ("…a mix of 90% short-term and" / "…mentoring 6").
+function continuesBullet(prev, line) {
+  if (/\s\|\s/.test(line) || line.length > 160) return false;
+  if (isContinuation(line) || /^[\d%$€£+]/.test(line)) return true;
+  return /\b(and|or|of|to|the|a|an|with|for|in|on|by|at|as|from|across|through|while|including|per)$|[,\-–]$|\d$/i.test(prev.trim());
+}
+
 function isContinuation(line) {
-  // Lower-case start or very long line usually means a wrapped sentence.
+  // Lower-case start usually means a wrapped sentence.
   return /^[a-zà-ÿ(]/.test(line);
 }
 
 function parseWorkEntry(e) {
-  const headerText = e.headers.map((h) => (e.range ? h.replace(e.range.raw, '') : h).replace(/\s*[|,–—-]\s*$/, '').trim()).filter(Boolean);
+  const segments = e.headers
+    .map((h) => (e.range ? h.replace(e.range.raw, '') : h))
+    .flatMap((h) => h.split(/\s+[|•·]\s+/))
+    .map((h) => h.replace(/^\s*[|,–—-]\s*|\s*[|,–—-]\s*$/g, '').trim())
+    .filter(Boolean);
   let position = '', name = '', location = '';
   const parts = [];
-  for (const h of headerText) {
-    if (looksLikeLocation(h)) { location = location || h; continue; }
-    parts.push(h);
+  for (const seg of segments) {
+    if (!location && looksLikeLocation(seg)) { location = seg; continue; }
+    parts.push(seg);
   }
   if (parts.length === 1) {
     const { a, b } = splitRoleAndOrg(parts[0]);
-    if (b && looksLikeRole(b) && !looksLikeRole(a)) { position = b; name = a; } else { position = a; name = b; }
+    if (b && looksLikeRole(b) && !looksLikeRole(a)) { position = b; name = a; }
+    else if (!b && !looksLikeRole(a) && !e.bullets.length) { name = a; }
+    else { position = a; name = b; }
   } else if (parts.length >= 2) {
     const [p0, p1] = parts;
     if (looksLikeRole(p1) && !looksLikeRole(p0)) { name = p0; position = p1; } else { position = p0; name = p1; }
-    // a trailing "Company, City" on the org line
-    const sp = splitRoleAndOrg(name);
-    if (sp.b && looksLikeLocation(sp.b + ', x') === false && /^[A-Z]/.test(sp.b) && sp.b.split(' ').length <= 3 && !location) {
-      // keep as is; avoid over-splitting company names with commas
-    }
   }
   const summaryLines = parts.slice(2);
-  const entry = {
+  return {
     name,
     position,
     location: location || undefined,
     startDate: e.range?.startDate || '',
-    endDate: e.range?.endDate || '',
+    endDate: e.range?.current ? '' : e.range?.endDate || '',
     summary: summaryLines.join(' ') || undefined,
     highlights: e.bullets,
   };
-  if (e.range?.current) entry.endDate = '';
-  return entry;
+}
+
+// One employer with several roles listed under it: copy the employer onto each role.
+function mergeNestedRoles(work) {
+  const out = [];
+  let parent = null;
+  for (const w of work) {
+    const isParent = w.name && !w.position && !w.highlights.length;
+    if (isParent) { parent = w; continue; }
+    if (!w.name && parent) { w.name = parent.name; w.location ||= parent.location; }
+    else if (w.name) parent = null;
+    out.push(w);
+  }
+  return out;
 }
 
 function parseEducationEntry(e) {
   const headerText = e.headers.map((h) => (e.range ? h.replace(e.range.raw, '') : h).replace(/\s*[|,–—-]\s*$/, '').trim()).filter(Boolean);
   let institution = '', studyType = '', area = '';
   const degreeRe = /\b(b\.?sc|m\.?sc|b\.?a|m\.?a|b\.?s|m\.?s|bachelor|master|mba|ph\.?d|doctor|diploma|diplom|associate|certificate|high school|abitur|ged|bsc|msc|beng|meng)\b/i;
-  const instRe = /\b(university|universität|université|college|school|institute|academy|hochschule|eth|epfl|polytechnic|gymnasium)\b/i;
+  const instRe = /(\b(university|universität|université|universidad|universita|college|school|institute|academy|hochschule|eth|epfl|polytechnic|gymnasium|coursera|udemy|edx)\b|école|ecole|escuela)/i;
   const rest = [];
-  const pieces = headerText.flatMap((h) => (degreeRe.test(h) && instRe.test(h) ? h.split(/\s+[|—–]\s+|,\s+(?=[A-Z])|\s+-\s+/) : [h]));
+  const pieces = headerText.flatMap((h) => (/\s[|—–]\s|\s-\s/.test(h) ? h.split(/\s+[|—–]\s+|\s+-\s+/) : [h]));
   for (const h of pieces) {
     if (!institution && instRe.test(h) && !degreeRe.test(h)) institution = h;
     else if (!studyType && degreeRe.test(h)) {
-      const m = h.match(/^(.*?)\s+(?:in|of|en|im)\s+(.*)$/i);
-      if (m) { studyType = m[1].trim(); area = m[2].trim(); } else studyType = h;
+      const comma = h.match(/^(.+?),\s*(.+)$/);
+      const m = h.match(/^(.*?)\s+(?:in)\s+(.*)$/i);
+      if (comma) { studyType = comma[1].trim(); area = comma[2].trim(); }
+      else if (m) { studyType = m[1].trim(); area = m[2].trim(); } else studyType = h;
       if (instRe.test(h) && !institution) {
         const sp = splitRoleAndOrg(h);
         if (instRe.test(sp.b)) { institution = sp.b; studyType = sp.a; }
@@ -200,6 +226,7 @@ function parseEducationEntry(e) {
     } else rest.push(h);
   }
   if (!institution && rest.length) institution = rest.shift();
+  if (!studyType && rest.length) studyType = rest.shift(); // e.g. a certificate name
   // If dates give only a single year (graduation), use it as endDate.
   let startDate = e.range?.startDate || '', endDate = e.range?.endDate || '';
   if (!e.range) {
@@ -308,7 +335,7 @@ function parseBasics(headLines, allText) {
     for (const part of line.split(/\s*[|•·]\s*/)) {
       const p = part.trim();
       if (looksLikeLocation(p) && !EMAIL_RE.test(p) && !/remote|hybrid/i.test(p)) {
-        const [city, region] = p.split(/,\s*/);
+        const [city, region] = p.replace(/\s*\(.*?\)\s*/g, ' ').trim().split(/,\s*/);
         basics.location = { city, region };
         return basics;
       }
@@ -325,7 +352,7 @@ function toNameCase(s) {
 /**
  * Parse resume text into JSON Resume.
  * @param {string} text
- * @returns {object} JSON Resume, with meta.openstep holding parse notes and unknown sections.
+ * @returns {object} JSON Resume, with meta.applykin holding parse notes and unknown sections.
  */
 export function parseResume(text) {
   const lines = cleanLines(text || '');
@@ -361,9 +388,9 @@ export function parseResume(text) {
     volunteer: [],
     publications: [],
     interests: [],
-    meta: { openstep: { headings: [], unparsed: [], parsedAt: new Date().toISOString() } },
+    meta: { applykin: { headings: [], unparsed: [], parsedAt: new Date().toISOString() } },
   };
-  const notes = resume.meta.openstep;
+  const notes = resume.meta.applykin;
 
   // Header lines that are not contact info, after name/label, become a summary if none is found.
   const headExtra = head.filter((l) => l.split(' ').length > 12 && !EMAIL_RE.test(l));
@@ -376,13 +403,16 @@ export function parseResume(text) {
         resume.basics.summary = body.filter(Boolean).map(stripBullet).join(' ');
         break;
       case 'work':
-        resume.work.push(...groupEntries(body).map(parseWorkEntry).filter((w) => w.name || w.position || w.highlights.length));
+        resume.work.push(...mergeNestedRoles(groupEntries(body).map(parseWorkEntry)).filter((w) => w.name || w.position || w.highlights.length));
         break;
       case 'volunteer':
         resume.volunteer.push(...groupEntries(body).map(parseWorkEntry).map((w) => ({ organization: w.name, position: w.position, startDate: w.startDate, endDate: w.endDate, highlights: w.highlights })));
         break;
       case 'education':
-        resume.education.push(...groupEntries(body).map(parseEducationEntry).filter((e) => e.institution || e.studyType));
+        // Education written as a bulleted list: each bullet is one entry.
+        resume.education.push(...groupEntries(body)
+          .flatMap((g) => (!g.headers.length && g.bullets.length ? g.bullets.map((b) => ({ headers: [b], bullets: [], range: findDateRange(b) })) : [g]))
+          .map(parseEducationEntry).filter((e) => e.institution || e.studyType));
         break;
       case 'skills':
         resume.skills.push(...parseSkills(body));
@@ -401,6 +431,13 @@ export function parseResume(text) {
         break;
       case 'publications':
         resume.publications.push(...parseSimpleList(body).map((p) => ({ name: p.name, releaseDate: p.endDate })));
+        break;
+      case 'additional':
+        for (const line of body.filter(Boolean).map(stripBullet)) {
+          const m = line.match(/^(languages?|sprachen|langues)\s*:\s*(.+)$/i);
+          if (m) resume.languages.push(...parseLanguages([m[2]]));
+          else resume.interests.push(...splitList(line.replace(/^[^:]{2,30}:\s*/, '')).map((name) => ({ name })));
+        }
         break;
       case 'interests':
         resume.interests.push(...splitList(body.filter(Boolean).map(stripBullet).join(', ')).map((name) => ({ name })));

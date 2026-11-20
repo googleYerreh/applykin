@@ -1,12 +1,13 @@
 {
-  "name": "openstep",
+  "name": "applykin",
   "version": "0.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "node --test test/*.test.js",
     "build": "node scripts/build-web.js",
-    "mcp": "node mcp/server.js"
+    "mcp": "node mcp/server.js",
+    "find-boards": "node scripts/find-boards.js"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +21,6 @@
   },
   "type": "module",
   "bin": {
-    "openstep": "bin/openstep.js"
+    "applykin": "bin/applykin.js"
   }
 }

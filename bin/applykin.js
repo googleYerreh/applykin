@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// OpenStep CLI: parse, score, render and export resumes from the terminal.
+// Applykin CLI: parse, score, render and export resumes from the terminal.
 import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -10,19 +10,19 @@ import { loadResume } from '../node/load.js';
 import { scoreResume, renderResumeHTML, RUBRIC, LOCALES, TEMPLATES, rankJobs, tailorResume, templateLetter, letterPrompt, generate, fetchBoards } from '../core/index.js';
 import { readFile } from 'node:fs/promises';
 
-const HELP = `openstep — free, open-source resume tools
+const HELP = `applykin — free, open-source job-search tools
 
 Usage:
-  openstep parse  <resume.pdf|docx|txt>            Print JSON Resume (or -o out.json)
-  openstep score  <resume|resume.json> [--json]    Score with the open rubric
-  openstep render <resume|resume.json> -o out.html Render a print-ready HTML resume
-  openstep pdf    <resume|resume.json> -o out.pdf  Render a PDF (needs Chrome/Chromium; set CHROME_PATH)
-  openstep rubric                                  List every scoring rule
+  applykin parse  <resume.pdf|docx|txt>            Print JSON Resume (or -o out.json)
+  applykin score  <resume|resume.json> [--json]    Score with the open rubric
+  applykin render <resume|resume.json> -o out.html Render a print-ready HTML resume
+  applykin pdf    <resume|resume.json> -o out.pdf  Render a PDF (needs Chrome/Chromium; set CHROME_PATH)
+  applykin rubric                                  List every scoring rule
 
-  openstep jobs fetch [--boards data/boards.json] -o jobs.json   Collect jobs from public boards
-  openstep match  <resume> <jobs.json> [--q text] [--remote] [--limit 20]   Rank jobs for a resume
-  openstep tailor <resume> <job.txt|jobs.json --id ID>           Keyword gaps + reordered resume (-o out.json)
-  openstep letter <resume> <job.txt|jobs.json --id ID> [--ai ollama|openai|anthropic] [--model M]
+  applykin jobs fetch [--boards data/boards.json] -o jobs.json   Collect jobs from public boards
+  applykin match  <resume> <jobs.json> [--q text] [--remote] [--limit 20]   Rank jobs for a resume
+  applykin tailor <resume> <job.txt|jobs.json --id ID>           Keyword gaps + reordered resume (-o out.json)
+  applykin letter <resume> <job.txt|jobs.json --id ID> [--ai ollama|openai|anthropic] [--model M]
                                                    Cover letter from your resume's facts (AI optional;
                                                    keys from OPENAI_API_KEY / ANTHROPIC_API_KEY)
 
@@ -54,7 +54,7 @@ function stripMeta(r) {
 }
 
 async function loadJobs(path) {
-  if (!path) throw new Error('Give a jobs.json file (from `openstep jobs fetch`).');
+  if (!path) throw new Error('Give a jobs.json file (from `applykin jobs fetch`).');
   const data = JSON.parse(await readFile(path, 'utf8'));
   return Array.isArray(data) ? data : data.jobs || [];
 }
@@ -84,7 +84,7 @@ function findChrome() {
 export async function htmlToPdf(html, outPath) {
   const chrome = findChrome();
   if (!chrome) throw new Error('No Chrome/Chromium found. Set CHROME_PATH, or use `render` and print the HTML to PDF from a browser.');
-  const dir = await mkdtemp(join(tmpdir(), 'openstep-'));
+  const dir = await mkdtemp(join(tmpdir(), 'applykin-'));
   try {
     const src = join(dir, 'resume.html');
     await writeFile(src, html);
@@ -108,9 +108,9 @@ async function main() {
     return;
   }
   if (cmd === 'jobs') {
-    if (file !== 'fetch') throw new Error('Usage: openstep jobs fetch [--boards data/boards.json] -o jobs.json');
+    if (file !== 'fetch') throw new Error('Usage: applykin jobs fetch [--boards data/boards.json] -o jobs.json');
     const { boards } = JSON.parse(await readFile(a.boards || 'data/boards.json', 'utf8'));
-    const { jobs, errors } = await fetchBoards(boards, fetch, { headers: { 'user-agent': 'OpenStep job feed (open-source)' }, onProgress: (n, t) => process.stderr.write(`\r${n}/${t} boards`) });
+    const { jobs, errors } = await fetchBoards(boards, fetch, { headers: { 'user-agent': 'Applykin job feed (open-source)' }, onProgress: (n, t) => process.stderr.write(`\r${n}/${t} boards`) });
     process.stderr.write('\n');
     const out = a.out || 'jobs.json';
     await writeFile(out, JSON.stringify({ generatedAt: new Date().toISOString(), count: jobs.length, errors, jobs }));
@@ -176,7 +176,7 @@ async function main() {
       let text = templateLetter(resume, job);
       if (a.ai) {
         const apiKey = a.ai === 'openai' ? process.env.OPENAI_API_KEY : a.ai === 'anthropic' ? process.env.ANTHROPIC_API_KEY : undefined;
-        text = await generate({ provider: a.ai, model: a.model, apiKey, baseUrl: process.env.OPENSTEP_AI_BASE_URL }, letterPrompt(resume, job, text, { locale: opts.locale }));
+        text = await generate({ provider: a.ai, model: a.model, apiKey, baseUrl: process.env.APPLYKIN_AI_BASE_URL }, letterPrompt(resume, job, text, { locale: opts.locale }));
       }
       if (a.out) { await writeFile(a.out, text); console.error(`Wrote ${a.out}`); } else console.log(text);
       break;
@@ -186,4 +186,4 @@ async function main() {
   }
 }
 
-main().catch((e) => { console.error('openstep: ' + e.message); process.exit(1); });
+main().catch((e) => { console.error('applykin: ' + e.message); process.exit(1); });

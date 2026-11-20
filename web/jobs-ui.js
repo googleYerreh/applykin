@@ -5,7 +5,8 @@ import { SAMPLE_JOBS } from './sample-jobs.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const KEY = 'openstep.jobs.v1';
+const KEY = 'applykin.jobs.v1';
+const OLD_KEY = 'openstep.jobs.v1'; // data saved before the rename
 const EMPTY_RESUME = { basics: {}, work: [], education: [], skills: [] };
 
 export function initJobs(ctx) {
@@ -15,7 +16,7 @@ export function initJobs(ctx) {
   const save = () => {
     try { localStorage.setItem(KEY, JSON.stringify({ jobs: st.jobs.slice(0, 400), feedInfo: st.feedInfo, apps: st.apps, ai: st.ai })); } catch {}
   };
-  try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch {}
+  try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY) || '{}')); } catch {}
 
   const resume = () => ctx.getResume() || EMPTY_RESUME;
   const hasResume = () => !!ctx.getResume();

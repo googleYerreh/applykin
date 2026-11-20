@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// OpenStep MCP server (stdio). Lets any MCP client (Claude, IDE agents) parse, score and export resumes.
+// Applykin MCP server (stdio). Lets any MCP client (Claude, IDE agents) parse, score and export resumes.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
@@ -8,7 +8,7 @@ import { loadResume } from '../node/load.js';
 import { readFile } from 'node:fs/promises';
 import { parseResume, scoreResume, renderResumeHTML, RUBRIC, LOCALES, TEMPLATES, rankJobs, tailorResume, templateLetter, fetchBoards, SOURCES } from '../core/index.js';
 
-const server = new McpServer({ name: 'openstep', version: '0.1.0' });
+const server = new McpServer({ name: 'applykin', version: '0.1.0' });
 
 const json = (data) => ({ content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] });
 const stripMeta = ({ meta, ...rest }) => rest;
@@ -29,7 +29,7 @@ const source = {
 server.tool('parse_resume', 'Convert a resume (PDF, DOCX, text) into JSON Resume.', source,
   async (a) => json(stripMeta(await resolveResume(a))));
 
-server.tool('score_resume', 'Score a resume with the open OpenStep rubric. Returns overall, category scores, every check, and fixes ranked by points gained.', source,
+server.tool('score_resume', 'Score a resume with the open Applykin rubric. Returns overall, category scores, every check, and fixes ranked by points gained.', source,
   async (a) => json(scoreResume(await resolveResume(a))));
 
 server.tool('render_resume', 'Render a resume to print-ready HTML. Writes to output_path if given, otherwise returns the HTML.',
@@ -76,7 +76,7 @@ server.tool('fetch_jobs', `Collect current jobs from public job boards (${Object
   { boards: z.array(z.object({ source: z.enum(Object.keys(SOURCES)), slug: z.string().optional(), company: z.string().optional(), pages: z.number().optional() })),
     output_path: z.string().describe('Where to write jobs.json') },
   async ({ boards, output_path }) => {
-    const { jobs, errors } = await fetchBoards(boards, fetch, { headers: { 'user-agent': 'OpenStep job feed (open-source)' } });
+    const { jobs, errors } = await fetchBoards(boards, fetch, { headers: { 'user-agent': 'Applykin job feed (open-source)' } });
     await writeFile(output_path, JSON.stringify({ generatedAt: new Date().toISOString(), count: jobs.length, errors, jobs }));
     return json({ written: output_path, jobs: jobs.length, errors });
   });

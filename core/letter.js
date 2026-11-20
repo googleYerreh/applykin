@@ -2,7 +2,7 @@
 // and a prompt for an optional AI pass that forbids inventing facts.
 import { tailorResume } from './tailor.js';
 import { displaySkill, resumeText } from './match.js';
-import { ACTION_VERBS } from './score.js';
+import { isActionVerb } from './score.js';
 
 function lowerFirst(s) { return s ? s[0].toLowerCase() + s.slice(1) : s; }
 function cleanBullet(s) { return String(s).replace(/\.$/, ''); }
@@ -27,7 +27,7 @@ export function templateLetter(resume, job) {
 
   // Quote a bullet as "I <bullet>" only when it starts with an action verb ("Led…", "Built…").
   const usable = (w) => (w?.highlights || []).map((h) => cleanBullet(h).replace(/^I\s+/i, ''))
-    .filter((h) => { const v = h.split(/\s+/)[0].toLowerCase(); return ACTION_VERBS.has(v) || /^[a-z]{3,}ed$/.test(v); });
+    .filter((h) => { const v = h.split(/\s+/)[0].toLowerCase(); return isActionVerb(v) || /^[a-z]{3,}ed$/.test(v); });
   const u1 = usable(top), u2 = usable(second);
   const evidence = [];
   if (top && u1[0]) evidence.push(`As ${top.position || 'part of the team'}${top.name ? ' at ' + top.name : ''}, I ${lowerFirst(u1[0])}.`);
