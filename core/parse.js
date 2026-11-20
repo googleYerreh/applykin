@@ -1,6 +1,9 @@
 // Turns plain resume text into a JSON Resume object (https://jsonresume.org/schema).
 // Pure JavaScript, no dependencies: runs in the browser, Node, and the MCP server.
 
+// Bump when parsing improves, so the app can offer to re-read older saved resumes.
+export const PARSER_VERSION = 3;
+
 const SECTION_ALIASES = {
   summary: ['summary', 'professional summary', 'profile', 'professional profile', 'about', 'about me', 'objective', 'career objective', 'overview', 'personal statement', 'kurzprofil', 'profil'],
   work: ['experience', 'work experience', 'professional experience', 'employment', 'employment history', 'work history', 'career history', 'relevant experience', 'berufserfahrung', 'experience professionnelle', 'expérience professionnelle'],
@@ -388,7 +391,7 @@ export function parseResume(text) {
     volunteer: [],
     publications: [],
     interests: [],
-    meta: { applykin: { headings: [], unparsed: [], parsedAt: new Date().toISOString() } },
+    meta: { applykin: { parserVersion: PARSER_VERSION, headings: [], unparsed: [], parsedAt: new Date().toISOString() } },
   };
   const notes = resume.meta.applykin;
 

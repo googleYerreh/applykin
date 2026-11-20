@@ -1,3 +1,5 @@
+import { TEMPLATES } from './render.js';
+
 // Open resume scoring rubric. Every rule, weight and fix text is public and editable.
 // Scores are rule-based and explainable; no model call is needed.
 
@@ -178,6 +180,14 @@ export const RUBRIC = [
     } },
   { id: 'contact-in-body', category: 'ats', weight: 1, title: 'Contact details in the body text',
     check: (r) => (r.basics?.email && r.basics?.phone) ? ok('Contact details are readable text.') : part(r.basics?.email ? 0.5 : 0, 'Email or phone could not be read.', 'Put contact details in the main text, not in a header/footer or an image.') },
+  { id: 'layout', category: 'ats', weight: 1.5, title: 'ATS-safe design',
+    check: (r, o) => {
+      const t = TEMPLATES[o?.template];
+      if (!t) return na();
+      if (t.ats === 'best') return ok(`${t.label} is a single-column design every system reads.`);
+      if (t.ats === 'good') return part(0.85, `${t.label} reads well in almost all systems.`, 'For the safest online applications, switch to Classic, Modern, Executive or Compact.');
+      return part(0.4, `${t.label} has two columns, which some systems read out of order.`, 'Switch to a single-column design (Classic, Modern, Executive or Compact) for online applications.');
+    } },
   { id: 'special-chars', category: 'ats', weight: 1, title: 'No odd symbols',
     check: (r) => {
       const t = r.meta?.applykin?.sourceText || '';
@@ -202,10 +212,10 @@ function na() { return { score: null, detail: 'Not applicable.' }; }
  * Score a JSON Resume.
  * @returns {{ overall:number, categories:Record<string,{label,score}>, checks:Array, fixes:Array }}
  */
-export function scoreResume(resume) {
+export function scoreResume(resume, opts = {}) {
   const checks = RUBRIC.map((rule) => {
     let res;
-    try { res = rule.check(resume); } catch (e) { res = { score: null, detail: 'Check failed: ' + e.message }; }
+    try { res = rule.check(resume, opts); } catch (e) { res = { score: null, detail: 'Check failed: ' + e.message }; }
     return { id: rule.id, category: rule.category, title: rule.title, weight: rule.weight, ...res };
   });
   const categories = {};

@@ -14,11 +14,25 @@ export const LOCALES = {
     h: { summary: 'Profil', work: 'Expérience professionnelle', education: 'Formation', skills: 'Compétences', projects: 'Projets', certificates: 'Certifications', languages: 'Langues', awards: 'Distinctions', volunteer: 'Bénévolat', publications: 'Publications', interests: "Centres d'intérêt" } },
 };
 
+// ats: how safely applicant tracking systems (ATS) read the design.
+//   best    = single column, plain headings: read correctly everywhere
+//   good    = single column with a colour band or date column: read well by almost all systems
+//   caution = two columns: looks great to people, but some systems read the columns out of order
 export const TEMPLATES = {
-  classic: { label: 'Classic', font: 'georgia', accent: '#1f2933', heading: 'rule-caps', nameAlign: 'center' },
-  modern: { label: 'Modern', font: 'helvetica', accent: '#0b5cad', heading: 'rule-color', nameAlign: 'left' },
-  compact: { label: 'Compact', font: 'arial', accent: '#222222', heading: 'band', nameAlign: 'left', compact: true },
-  sidebar: { label: 'Sidebar (two columns)', font: 'lato', accent: '#2f4ea8', heading: 'rule-color', nameAlign: 'left', sidebar: true, twoColumn: true },
+  classic: { label: 'Classic', blurb: 'Serif, centred name, ruled headings', font: 'georgia', accent: '#1f2933', heading: 'rule-caps', nameAlign: 'center', ats: 'best' },
+  modern: { label: 'Modern', blurb: 'Clean sans-serif with colour rules', font: 'helvetica', accent: '#0b5cad', heading: 'rule-color', nameAlign: 'left', ats: 'best' },
+  executive: { label: 'Executive', blurb: 'Elegant serif, centred headings', font: 'garamond', accent: '#2b2b2b', heading: 'double', nameAlign: 'center', ats: 'best' },
+  compact: { label: 'Compact', blurb: 'Dense layout that fits more on a page', font: 'arial', accent: '#222222', heading: 'band', nameAlign: 'left', compact: true, ats: 'best' },
+  banner: { label: 'Banner', blurb: 'Bold colour header, single column', font: 'inter', accent: '#3730c4', heading: 'rule-color', nameAlign: 'left', banner: true, ats: 'good' },
+  timeline: { label: 'Timeline', blurb: 'Dates in a left column, easy to scan', font: 'sourcesans', accent: '#0f766e', heading: 'rule-color', nameAlign: 'left', timeline: true, ats: 'good' },
+  sidebar: { label: 'Soft Sidebar', blurb: 'Tinted side column with photo', font: 'lato', accent: '#2f4ea8', heading: 'rule-color', nameAlign: 'left', sidebar: true, twoColumn: true, ats: 'caution' },
+  sidebarDark: { label: 'Bold Column', blurb: 'Solid colour column with photo', font: 'inter', accent: '#1e293b', heading: 'rule-color', nameAlign: 'left', sidebar: true, dark: true, twoColumn: true, ats: 'caution' },
+};
+
+export const ATS_LEVELS = {
+  best: { label: 'Best for ATS', note: 'Single column with plain headings. Every tracking system reads it correctly. Use it for online applications.' },
+  good: { label: 'Good for ATS', note: 'Single column with a colour band or date column. Almost all tracking systems read it well.' },
+  caution: { label: 'Email & networking', note: 'Two columns look great to people, but some tracking systems read them out of order. Send it by email or bring it to interviews; use a "Best" design for online applications.' },
 };
 
 // Fonts: system fonts work offline; web fonts load from Google Fonts when online and fall back otherwise.
@@ -86,13 +100,16 @@ export function renderResumeHTML(resume, opts = {}) {
   const sec = (key, inner) => (inner ? `<section><h2>${esc(L.h[key])}</h2>${inner}</section>` : '');
   const list = (items) => (items?.length ? `<ul>${items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : '');
 
-  const work = (resume.work || []).map((w) => `
+  const tl = (dates, inner) => `<div class="entry tl"><div class="when">${esc(dates)}</div><div class="what">${inner}</div></div>`;
+  const work = (resume.work || []).map((w) => T.timeline ? tl(range(w.startDate, w.endDate, locale),
+      `<div><strong>${esc(w.position)}</strong>${w.name ? `${w.position ? ' — ' : ''}<span class="org">${esc(w.name)}</span>` : ''}${w.location ? `, ${esc(w.location)}` : ''}</div>${w.summary ? `<p>${esc(w.summary)}</p>` : ''}${list(w.highlights)}`) : `
     <div class="entry">
       <div class="row"><div><strong>${esc(w.position)}</strong>${w.name ? `${w.position ? ' — ' : ''}<span class="org">${esc(w.name)}</span>` : ''}${w.location ? `, ${esc(w.location)}` : ''}</div><div class="date">${esc(range(w.startDate, w.endDate, locale))}</div></div>
       ${w.summary ? `<p>${esc(w.summary)}</p>` : ''}${list(w.highlights)}
     </div>`).join('');
 
-  const edu = (resume.education || []).map((e) => `
+  const edu = (resume.education || []).map((e) => T.timeline && !T.sidebar ? tl(range(e.startDate, e.endDate, locale),
+      `<div><strong>${esc([e.studyType, e.area].filter(Boolean).join(', '))}</strong>${e.institution ? `${e.studyType || e.area ? ' — ' : ''}${esc(e.institution)}` : ''}</div>${list(e.courses)}`) : `
     <div class="entry">
       <div class="row"><div><strong>${esc([e.studyType, e.area].filter(Boolean).join(', '))}</strong>${e.institution ? `${e.studyType || e.area ? ' — ' : ''}${esc(e.institution)}` : ''}</div><div class="date">${esc(range(e.startDate, e.endDate, locale))}</div></div>
       ${list(e.courses)}
@@ -122,7 +139,7 @@ export function renderResumeHTML(resume, opts = {}) {
     T.sidebar ? '' : sec('interests', interests),
   ].join('');
 
-  const header = `<header>${photo && !T.sidebar ? `<img class="photo" src="${photo}" alt="">` : ''}<div><h1>${esc(b.name)}</h1>${b.label ? `<div class="label">${esc(b.label)}</div>` : ''}${T.sidebar ? '' : `<div class="contact">${contactItems.join('<span class="sep"> · </span>')}</div>`}</div></header>`;
+  const header = `<header class="${T.banner ? 'banner' : ''}">${photo && !T.sidebar ? `<img class="photo" src="${photo}" alt="">` : ''}<div><h1>${esc(b.name)}</h1>${b.label ? `<div class="label">${esc(b.label)}</div>` : ''}${T.sidebar ? '' : `<div class="contact">${contactItems.join('<span class="sep"> · </span>')}</div>`}</div></header>`;
 
   const sidebarHtml = T.sidebar ? `<aside>
       ${photo ? `<img class="photo" src="${photo}" alt="">` : ''}
@@ -136,6 +153,7 @@ export function renderResumeHTML(resume, opts = {}) {
   const headingCss = {
     'rule-caps': `border-bottom:1px solid ${accent};text-transform:uppercase;letter-spacing:.06em;font-size:${(11 * size).toFixed(1)}pt;color:${accent};`,
     'rule-color': `color:${accent};font-size:${(12 * size).toFixed(1)}pt;border-bottom:2px solid ${accent};`,
+    double: `text-align:center;text-transform:uppercase;letter-spacing:.14em;font-size:${(10.5 * size).toFixed(1)}pt;color:${accent};border-top:1px solid ${accent};border-bottom:1px solid ${accent};padding:3pt 0;`,
     band: `text-transform:uppercase;font-size:${(10 * size).toFixed(1)}pt;letter-spacing:.08em;background:${accent}14;color:${accent};padding:2px 6px;`,
   }[T.heading];
   const baseSize = (T.compact ? 9.5 : 10.5) * size;
@@ -164,6 +182,10 @@ ul.plain { list-style: none; padding: 0; } ul.plain li { margin: 2pt 0; overflow
 .date { white-space: nowrap; color: #333; }
 .org { color: ${T.sidebar ? accent : 'inherit'}; }
 img.photo { width: ${T.sidebar ? '34mm' : '26mm'}; height: ${T.sidebar ? '34mm' : '26mm'}; object-fit: cover; border-radius: 50%; flex: none; }
+${T.banner ? `header.banner { background: ${accent}; color: #fff; padding: 9mm 8mm; border-radius: 3mm; }
+header.banner h1 { color: #fff; } header.banner .label, header.banner .contact { color: rgba(255,255,255,.88); }` : ''}
+${T.timeline ? `.tl { display: grid; grid-template-columns: 27mm 1fr; gap: 5mm; } .tl .when { color: ${accent}; font-weight: 600; font-size: ${(baseSize * 0.92).toFixed(2)}pt; padding-top: 1pt; }` : ''}
+${T.dark ? `aside { background: ${accent} !important; color: #fff; } aside h2 { color: #fff !important; border-color: rgba(255,255,255,.45) !important; } aside .date { color: rgba(255,255,255,.75) !important; } aside strong { color: #fff; }` : ''}
 ${T.sidebar ? `aside { background: ${accent}1f; padding: ${(m.v * 1.1).toFixed(1)}mm ${(m.h * 0.6).toFixed(1)}mm; font-size: ${(baseSize * 0.93).toFixed(2)}pt; }
 aside ul.plain li { word-break: normal; overflow-wrap: break-word; hyphens: none; }
 aside img.photo { display: block; margin: 0 auto ${(10 * gap).toFixed(1)}pt; }

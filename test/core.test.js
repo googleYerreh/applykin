@@ -88,3 +88,13 @@ test('weak resume: unknown heading stays out of bullets, titles are not cities',
   assert.deepEqual([r.work[0].position, r.work[0].name], ['Warehouse Associate', 'QuickShip Logistics']);
   assert.ok(!r.work.some((w) => (w.highlights || []).some((h) => /Stuff I Know/.test(h))));
 });
+
+test('every design renders, and two-column designs cost ATS points', async () => {
+  const { TEMPLATES } = await import('../core/index.js');
+  const r = parseResume(txt('strong'));
+  for (const t of Object.keys(TEMPLATES)) assert.match(renderResumeHTML(r, { template: t }), /Maria Gonzalez/);
+  const best = scoreResume(r, { template: 'classic' }), side = scoreResume(r, { template: 'sidebar' });
+  assert.ok(best.overall > side.overall);
+  assert.ok(side.fixes.some((f) => f.id === 'layout'));
+  assert.equal(scoreResume(r).checks.find((c) => c.id === 'layout').score, null, 'no design given: not applicable');
+});

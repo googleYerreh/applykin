@@ -2,7 +2,7 @@
 import * as pdfjs from 'pdfjs-dist/build/pdf.mjs';
 import workerSource from 'pdfjs-dist/build/pdf.worker.min.mjs';
 import mammoth from 'mammoth/mammoth.browser.min.js';
-import { parseResume, scoreResume, renderResumeHTML, extractPdfText, extractDocxText, detectKind, RUBRIC, CATEGORIES, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN } from '../core/index.js';
+import { parseResume, scoreResume, renderResumeHTML, extractPdfText, extractDocxText, detectKind, RUBRIC, CATEGORIES, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN, ATS_LEVELS, PARSER_VERSION } from '../core/index.js';
 import { SAMPLES } from './samples.js';
 import { initJobs } from './jobs-ui.js';
 
@@ -24,6 +24,8 @@ function restore() {
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || localStorage.getItem(OLD_STORE) || 'null');
     if (s?.resume) Object.assign(state, s, { design: { ...DEFAULT_DESIGN, ...(s.design || {}) } });
+    const m = state.resume?.meta;
+    if (m?.openstep && !m.applykin) { m.applykin = m.openstep; delete m.openstep; }
   } catch {}
 }
 
@@ -75,7 +77,7 @@ function scheduleRefresh() { clearTimeout(refreshTimer); refreshTimer = setTimeo
 
 function refresh() {
   const r = state.resume;
-  const s = scoreResume(r);
+  const s = scoreResume(r, { template: state.template });
   $('#overall').textContent = s.overall;
   $('#overall-ring').style.setProperty('--p', s.overall);
   $('#overall-ring').dataset.band = s.overall >= 80 ? 'good' : s.overall >= 60 ? 'ok' : 'low';
@@ -83,7 +85,7 @@ function refresh() {
   $('#cats').innerHTML = Object.entries(s.categories).map(([k, c]) => `
     <div class="cat"><div class="cat-row"><span>${esc(c.label)}</span><b>${c.score}</b></div><div class="bar"><i style="width:${c.score}%" data-band="${c.score >= 80 ? 'good' : c.score >= 60 ? 'ok' : 'low'}"></i></div></div>`).join('');
   $('#fixes').innerHTML = s.fixes.length
-    ? s.fixes.map((f) => `<li><div class="fix-head"><b>${esc(f.title)}</b><span class="gain">+${f.gain} pts</span></div><div class="fix-detail">${esc(f.detail)}</div><div class="fix-do">${esc(f.fix)}</div></li>`).join('')
+    ? s.fixes.map((f) => `<li><div class="fix-head"><b>${esc(f.title)}</b><span class="gain">+${f.gain} pts</span></div><div class="fix-detail">${esc(f.detail)}</div><div class="fix-do">${esc(f.fix)}</div>${fixLabel(f.id) ? `<button type="button" class="fix-btn" data-fix="${esc(f.id)}">${fixLabel(f.id)}</button>` : ''}</li>`).join('')
     : '<li class="none">No fixes left. Nice work.</li>';
   $('#rubric').innerHTML = Object.entries(CATEGORIES).map(([k, c]) => `
     <h4>${esc(c.label)} <small>${Math.round(c.weight * 100)}% of total</small></h4>
@@ -91,6 +93,7 @@ function refresh() {
   const html = renderResumeHTML(r, renderOpts());
   const frame = $('#preview');
   frame.srcdoc = html;
+  renderThumbs();
   jobsUI?.onResumeChange();
 }
 
@@ -107,7 +110,7 @@ function renderEditor() {
   const b = r.basics;
   const links = [b.url, ...b.profiles.map((p) => p.url)].filter(Boolean).join('\n');
   $('#editor').innerHTML = `
-    <details open><summary>Contact</summary><div class="grid">
+    <details open data-section="contact"><summary>Contact</summary><div class="grid">
       ${field('basics.name', 'Full name', b.name)}
       ${field('basics.label', 'Headline', b.label, { ph: 'e.g. Senior Product Designer' })}
       ${field('basics.email', 'Email', b.email)}
@@ -118,8 +121,8 @@ function renderEditor() {
       <div class="field wide photo-field"><span>Photo (optional, stays on this device)</span>
         <div class="photo-row">${b.image ? `<img src="${b.image}" alt="Your photo">` : ''}<label class="btn ghost small">${b.image ? 'Change photo' : 'Add photo'}<input type="file" id="photo-input" accept="image/png,image/jpeg,image/webp" hidden></label>${b.image ? '<button type="button" class="btn ghost small" data-photo-remove>Remove</button>' : ''}</div></div>
     </div></details>
-    <details open><summary>Summary</summary>${field('basics.summary', '2–3 sentences', b.summary, { area: true, rows: 4, wide: true })}</details>
-    <details open><summary>Experience <small>${r.work.length}</small></summary>
+    <details open data-section="summary"><summary>Summary</summary>${field('basics.summary', '2–3 sentences', b.summary, { area: true, rows: 4, wide: true })}</details>
+    <details open data-section="work"><summary>Experience <small>${r.work.length}</small></summary>
       ${r.work.map((w, i) => `<div class="entry-card"><div class="entry-tools"><b>${esc(w.position || 'Role')}${w.name ? ' — ' + esc(w.name) : ''}</b><span>
         <button type="button" data-move="work.${i}.-1" title="Move up" ${i === 0 ? 'disabled' : ''}>↑</button><button type="button" data-move="work.${i}.1" title="Move down" ${i === r.work.length - 1 ? 'disabled' : ''}>↓</button><button type="button" data-del="work.${i}" title="Remove">✕</button></span></div>
         <div class="grid">${field(`work.${i}.position`, 'Job title', w.position)}${field(`work.${i}.name`, 'Employer', w.name)}
@@ -128,16 +131,16 @@ function renderEditor() {
         ${field(`work.${i}.highlights`, 'Bullet points (one per line)', (w.highlights || []).join('\n'), { area: true, rows: Math.max(3, (w.highlights || []).length + 1), wide: true, list: true })}</div></div>`).join('')}
       <button type="button" class="add" data-add="work">+ Add a role</button>
     </details>
-    <details><summary>Education <small>${r.education.length}</small></summary>
+    <details data-section="education"><summary>Education <small>${r.education.length}</small></summary>
       ${r.education.map((e, i) => `<div class="entry-card"><div class="entry-tools"><b>${esc(e.institution || 'School')}</b><span><button type="button" data-del="education.${i}" title="Remove">✕</button></span></div>
         <div class="grid">${field(`education.${i}.institution`, 'School', e.institution)}${field(`education.${i}.studyType`, 'Degree', e.studyType)}
         ${field(`education.${i}.area`, 'Field of study', e.area)}${field(`education.${i}.startDate`, 'Start', e.startDate)}${field(`education.${i}.endDate`, 'End', e.endDate)}</div></div>`).join('')}
       <button type="button" class="add" data-add="education">+ Add education</button>
     </details>
-    <details><summary>Skills <small>${r.skills.reduce((a, s) => a + (s.keywords?.length || 0), 0)}</small></summary>
+    <details data-section="skills"><summary>Skills <small>${r.skills.reduce((a, s) => a + (s.keywords?.length || 0), 0)}</small></summary>
       ${field('_skills', 'One group per line, e.g. "Design: Figma, Prototyping"', r.skills.map((s) => `${s.name}: ${(s.keywords || []).join(', ')}`).join('\n'), { area: true, rows: Math.max(3, r.skills.length + 1), wide: true })}
     </details>
-    <details><summary>Languages</summary>
+    <details data-section="languages"><summary>Languages</summary>
       ${field('_languages', 'Comma separated, e.g. "English (native), Spanish (C1)"', r.languages.map((l) => (l.fluency ? `${l.language} (${l.fluency})` : l.language)).join(', '), { area: true, rows: 2, wide: true })}
     </details>`;
 }
@@ -239,7 +242,6 @@ function exportPDF() {
 
 // ---------- wire up ----------
 function init() {
-  $('#template').innerHTML = Object.entries(TEMPLATES).map(([k, t]) => `<option value="${k}">${esc(t.label)}</option>`).join('');
   $('#locale').innerHTML = Object.entries(LOCALES).map(([k, l]) => `<option value="${k}">${esc(l.label)} · ${l.page}</option>`).join('');
   $('#rule-count').textContent = RUBRIC.length;
 
@@ -258,7 +260,19 @@ function init() {
 
   $('#editor').addEventListener('input', onEdit);
   $('#editor').addEventListener('click', onEditorClick);
-  $('#template').addEventListener('change', (e) => { state.template = e.target.value; save(); renderDesign(); refresh(); });
+  $('#gallery').addEventListener('click', (e) => { const b = e.target.closest('[data-template]'); if (b) setTemplate(b.dataset.template); });
+  $('#gallery-panel').addEventListener('toggle', () => renderThumbs());
+  $('#fixes').addEventListener('click', (e) => { const b = e.target.closest('[data-fix]'); if (b) goFix(b.dataset.fix); });
+  $('#reparse').addEventListener('click', (e) => {
+    if (!e.target.closest('#reparse-go')) return;
+    const src = state.resume?.meta?.applykin?.sourceText;
+    if (!src) return;
+    const image = state.resume.basics?.image;
+    const fresh = parseResume(src);
+    if (image) fresh.basics.image = image;
+    $('#reparse').hidden = true;
+    load(fresh);
+  });
   $('#design').addEventListener('input', onDesign);
   $('#design').addEventListener('click', onDesign);
   $('#d-reset').addEventListener('click', () => { state.design = { ...DEFAULT_DESIGN }; save(); renderDesign(); refresh(); });
@@ -275,9 +289,12 @@ function init() {
   });
 
   restore();
-  $('#template').value = state.template;
+  if (!TEMPLATES[state.template]) state.template = 'classic';
+  renderGallery(false);
   $('#locale').value = state.locale;
   renderDesign();
+  const pv = state.resume?.meta?.applykin?.parserVersion || 0;
+  $('#reparse').hidden = !(state.resume && pv < PARSER_VERSION && state.resume.meta?.applykin?.sourceText);
   if (state.resume) { $('#start').hidden = true; $('#workspace').hidden = false; $('#new').hidden = false; renderEditor(); refresh(); }
 }
 
@@ -291,6 +308,86 @@ function confirmReset() {
   return false;
 }
 
+// ---------- guided fixes ----------
+// Each fix jumps to the field that resolves it. Nothing is filled in for the user: facts only come from them.
+const CONTACT_FIX = { name: 'basics.name', email: 'basics.email', phone: 'basics.phone', location: 'basics.location.city', 'profile-link': 'basics._links', 'contact-in-body': 'basics.email' };
+const WORK_FIX = ['dates', 'order', 'titles', 'bullets-per-role', 'action-verbs', 'weak-openers', 'numbers', 'bullet-length', 'first-person', 'verb-variety'];
+function fixLabel(id) {
+  if (id === 'layout') return 'Switch to Classic';
+  if (CONTACT_FIX[id]) return 'Add it';
+  if (['summary', 'education', 'skills', 'work', 'sections-found', 'cliches', ...WORK_FIX].includes(id)) return 'Fix it';
+  return '';
+}
+function focusField(section, path) {
+  const det = document.querySelector(`#editor details[data-section="${section}"]`);
+  if (!det) return;
+  det.open = true;
+  const el = path ? document.querySelector(`#editor [data-path="${path}"]`) : null;
+  (el || det).scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (el) { setTimeout(() => el.focus({ preventScroll: true }), 350); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1800); }
+}
+function goFix(id) {
+  const r = state.resume;
+  const work = r.work || [];
+  if (id === 'layout') return setTemplate('classic');
+  if (CONTACT_FIX[id]) return focusField('contact', CONTACT_FIX[id]);
+  if (id === 'summary' || id === 'cliches') return focusField('summary', 'basics.summary');
+  if (id === 'skills') return focusField('skills', '_skills');
+  if (id === 'education' || (id === 'sections-found' && work.length && !(r.education || []).length)) {
+    if (!(r.education || []).length) { r.education = [{ institution: '', studyType: '', area: '', startDate: '', endDate: '' }]; renderEditor(); }
+    return focusField('education', 'education.0.institution');
+  }
+  if (id === 'sections-found' && !(r.skills || []).length) return focusField('skills', '_skills');
+  if (id === 'work' || (id === 'sections-found' && !work.length)) {
+    if (!work.length) { r.work = [{ position: '', name: '', startDate: '', endDate: '', highlights: [] }]; renderEditor(); }
+    return focusField('work', 'work.0.position');
+  }
+  if (WORK_FIX.includes(id)) {
+    let i = 0, field = 'highlights';
+    if (id === 'dates') { i = work.findIndex((w) => !w.startDate); field = 'startDate'; }
+    else if (id === 'titles') { i = work.findIndex((w) => !w.position || !w.name); field = work[i]?.position ? 'name' : 'position'; }
+    else if (id === 'bullets-per-role') i = work.findIndex((w) => (w.highlights || []).length < 2 || w.highlights.length > 7);
+    return focusField('work', `work.${Math.max(0, i)}.${field}`);
+  }
+}
+
+// ---------- design gallery ----------
+function setTemplate(name) {
+  if (!TEMPLATES[name]) return;
+  state.template = name;
+  save(); renderGallery(); renderDesign(); refresh();
+}
+let galleryTimer;
+function renderGallery(thumbsToo = true) {
+  const el = $('#gallery');
+  const sample = state.resume || {};
+  el.innerHTML = Object.entries(TEMPLATES).map(([k, t]) => `
+    <button type="button" class="tpl ${k === state.template ? 'sel' : ''}" data-template="${k}" aria-pressed="${k === state.template}">
+      <span class="thumb"><iframe tabindex="-1" aria-hidden="true" data-thumb="${k}" loading="lazy"></iframe></span>
+      <span class="tpl-name">${esc(t.label)}</span>
+      <span class="tpl-blurb">${esc(t.blurb)}</span>
+      <span class="ats-badge" data-ats="${t.ats}">${esc(ATS_LEVELS[t.ats].label)}</span>
+    </button>`).join('');
+  const cur = TEMPLATES[state.template];
+  $('#ats-advice').innerHTML = `<b>${esc(cur.label)}:</b> ${esc(ATS_LEVELS[cur.ats].note)}`;
+  $('#ats-advice').dataset.ats = cur.ats;
+  scaleThumbs();
+  if (thumbsToo) renderThumbs();
+}
+function scaleThumbs() {
+  document.querySelectorAll('#gallery .thumb').forEach((t) => t.style.setProperty('--s', (t.clientWidth / 816).toFixed(4)));
+}
+try { new ResizeObserver(scaleThumbs).observe(document.getElementById('gallery')); } catch {}
+function renderThumbs() {
+  clearTimeout(galleryTimer);
+  galleryTimer = setTimeout(() => {
+    if (!state.resume || !$('#gallery-panel').open) return;
+    document.querySelectorAll('#gallery iframe[data-thumb]').forEach((f) => {
+      f.srcdoc = renderResumeHTML(state.resume, { template: f.dataset.thumb, locale: state.locale, design: { ...state.design, accent: '', font: '' } });
+    });
+  }, 600);
+}
+
 // ---------- design ----------
 function renderDesign() {
   const d = state.design;
@@ -302,7 +399,6 @@ function renderDesign() {
   for (const k of ['textSize', 'lineSpacing', 'sectionSpacing', 'margin']) { $(`#d-${k}`).value = d[k]; $(`#d-${k}-v`).textContent = d[k] + '%'; }
   $('#d-photo').checked = !!d.photo;
   $('#d-photo-row').hidden = !!TEMPLATES[state.template].sidebar;
-  $('#ats-warning').hidden = !TEMPLATES[state.template].twoColumn;
 }
 function onDesign(e) {
   const t = e.target;
