@@ -2,6 +2,7 @@
 import { rankJobs, tailorResume, templateLetter, letterPrompt, generate, PROVIDERS, fetchBoards, dedupeJobs,
   STAGES, STAGE_LABELS, trackJob, moveApplication, updateApplication, removeApplication } from '../core/index.js';
 import { SAMPLE_JOBS } from './sample-jobs.js';
+import { userPlace, proximity, tierRank, countryFromTimeZone, COUNTRIES, JOB_TYPE_LABELS, jobTypeOf } from '../core/index.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -10,11 +11,11 @@ const OLD_KEY = 'openstep.jobs.v1'; // data saved before the rename
 const EMPTY_RESUME = { basics: {}, work: [], education: [], skills: [] };
 
 export function initJobs(ctx) {
-  const st = { jobs: [], feedInfo: '', apps: [], ai: { provider: '', model: '', baseUrl: '', apiKey: '' }, answers: {}, drafts: {}, selected: null, applyStep: null, filters: { q: '', loc: '', remote: false } };
+  const st = { jobs: [], feedInfo: '', apps: [], ai: { provider: '', model: '', baseUrl: '', apiKey: '' }, answers: {}, drafts: {}, selected: null, applyStep: null, filters: { q: '', remote: false, types: [] }, place: null, sort: 'near', showAbroad: false };
 
   // ---------- storage ----------
   const save = () => {
-    try { localStorage.setItem(KEY, JSON.stringify({ jobs: st.jobs.slice(0, 400), feedInfo: st.feedInfo, apps: st.apps, ai: st.ai, answers: st.answers, drafts: st.drafts })); } catch {}
+    try { localStorage.setItem(KEY, JSON.stringify({ jobs: st.jobs.slice(0, 400), feedInfo: st.feedInfo, apps: st.apps, ai: st.ai, answers: st.answers, drafts: st.drafts, place: st.place, sort: st.sort, showAbroad: st.showAbroad, filters: st.filters })); } catch {}
   };
   try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY) || '{}')); } catch {}
 
@@ -52,13 +53,14 @@ export function initJobs(ctx) {
     if (!title || description.length < 40) return status('Add a job title and paste the full job description.', true);
     const job = { id: `pasted:${Date.now()}`, source: 'pasted', sourceLabel: 'Pasted', attribution: 'Pasted by you', company: company || 'Unknown company', title, location: '', remote: /remote/i.test(description),
       description, url: url || '', applyUrl: url || '', postedAt: new Date().toISOString(), salary: null };
-    st.jobs = [job, ...st.jobs];
+    st.jobs = [{ ...job, jobType: jobTypeOf(job) }, ...st.jobs];
     ['#pj-title', '#pj-company', '#pj-desc', '#pj-url'].forEach((s) => ($(s).value = ''));
     save(); renderList(); select(job.id);
   }
 
+  const withType = (jobs) => jobs.map((j) => (j.jobType !== undefined ? j : { ...j, jobType: jobTypeOf(j) }));
   function setJobs(jobs, info) {
-    st.jobs = jobs; st.feedInfo = info; st.selected = null;
+    st.jobs = withType(jobs); st.feedInfo = info; st.selected = null;
     save(); status(''); renderList(); renderDetail();
   }
 
@@ -67,24 +69,73 @@ export function initJobs(ctx) {
     el.hidden = !msg; el.textContent = msg; el.className = 'status' + (err ? ' error' : '');
   }
 
+  // ---------- where the person is ----------
+  // Asked once, pre-filled from the resume (or the browser's time zone), always editable.
+  function defaultPlace() {
+    const loc = resume().basics?.location || {};
+    let tz = '';
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch {}
+    const up = userPlace({ city: loc.city, region: loc.region, country: loc.countryCode || '' });
+    return { city: loc.city || '', region: loc.region || '', country: up.country || countryFromTimeZone(tz) || '', confirmed: false };
+  }
+  const place = () => (st.place ||= defaultPlace());
+  const me = () => userPlace(place());
+
+  function renderPlace() {
+    const p = place();
+    const box = $('#place');
+    const where = [p.city, me().stateName, p.country].filter(Boolean).join(', ');
+    if (p.confirmed && !st.editingPlace) {
+      box.innerHTML = `<span class="place-now">Showing jobs near <b>${esc(where || 'you')}</b></span> <button type="button" class="linkish" data-place-edit>Change</button>`;
+      return;
+    }
+    box.innerHTML = `
+      <p class="place-q"><b>Where are you looking for work?</b> We use this to put nearby jobs first. It stays on this device.</p>
+      <div class="place-fields">
+        <label class="field"><span>City</span><input id="pl-city" value="${esc(p.city)}" placeholder="e.g. Temecula"></label>
+        <label class="field"><span>State / region</span><input id="pl-region" value="${esc(p.region)}" placeholder="e.g. CA"></label>
+        <label class="field"><span>Country</span><input id="pl-country" list="pl-countries" value="${esc(p.country)}" placeholder="e.g. United States"></label>
+        <datalist id="pl-countries">${Object.keys(COUNTRIES).map((c) => `<option value="${esc(c)}">`).join('')}</datalist>
+        <button type="button" class="btn" data-place-save>Use this location</button>
+      </div>`;
+  }
+
   // ---------- list ----------
   let ranked = [];
   function renderList() {
     const f = st.filters;
-    ranked = rankJobs(resume(), st.jobs, { query: f.q, location: f.loc, remote: f.remote, limit: 150 });
+    const u = me();
+    const all = rankJobs(resume(), st.jobs, { query: f.q, remote: f.remote, limit: 1000 })
+      .map((x) => ({ ...x, near: proximity(u, x.job) }))
+      .filter((x) => !f.types?.length || f.types.includes(x.job.jobType || ''));
+    const abroad = all.filter((x) => !x.near.reachable).length;
+    ranked = all.filter((x) => st.showAbroad || x.near.reachable);
+    if (st.sort !== 'match') ranked.sort((a, b) => tierRank(st.sort, a.near.tier) - tierRank(st.sort, b.near.tier) || b.match.score - a.match.score);
+    ranked = ranked.slice(0, 200);
     $('#feed-info').textContent = st.jobs.length ? `${st.feedInfo || st.jobs.length + ' jobs'} · showing ${ranked.length}` : '';
+    $('#abroad-count').textContent = abroad ? `(${abroad})` : '';
     $('#no-resume-note').hidden = hasResume();
+    document.querySelectorAll('[data-sort]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.sort === st.sort)));
+    document.querySelectorAll('[data-type]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.type === '' ? !f.types?.length : (f.types || []).includes(b.dataset.type))));
     const tracked = new Set(st.apps.map((a) => a.id));
-    $('#job-list').innerHTML = ranked.length ? ranked.map(({ job, match }) => `
+    let lastTier = '';
+    const counts = {};
+    ranked.forEach((x) => (counts[x.near.tier] = (counts[x.near.tier] || 0) + 1));
+    $('#job-list').innerHTML = ranked.length ? ranked.map(({ job, match, near }) => {
+      const head = st.sort !== 'match' && near.tier !== lastTier ? `<li class="tier-head">${esc(near.label)} <small>${counts[near.tier]}</small></li>` : '';
+      lastTier = near.tier;
+      return `${head}
       <li class="job ${st.selected === job.id ? 'sel' : ''}" data-id="${esc(job.id)}" tabindex="0">
         <div class="job-score" data-band="${!hasResume() ? 'none' : match.score >= 70 ? 'good' : match.score >= 45 ? 'ok' : 'low'}">${hasResume() ? match.score : '–'}<small>${hasResume() ? 'match' : ''}</small></div>
         <div class="job-main">
           <div class="job-title">${esc(job.title)}</div>
-          <div class="job-meta">${esc(job.company)}${job.location ? ' · ' + esc(job.location) : ''}${job.remote ? ' · <b>Remote</b>' : ''}${job.salary?.text ? ' · ' + esc(job.salary.text) : ''}</div>
+          <div class="job-meta">${esc(job.company)}${job.location ? ' · ' + esc(job.location) : ''}${job.salary?.text ? ' · ' + esc(job.salary.text) : ''}</div>
+          <div class="job-tags"><span class="tag-near" data-tier="${near.tier}">${esc(near.label)}</span>${job.jobType && job.jobType !== 'full-time' ? `<span class="tag-type" data-type="${job.jobType}">${esc(JOB_TYPE_LABELS[job.jobType])}</span>` : ''}</div>
           ${hasResume() && match.reasons.length ? `<div class="job-why">${esc(match.reasons.join(' · '))}</div>` : ''}
           <div class="job-src">${esc(job.attribution || job.sourceLabel || '')}${job.postedAt ? ' · ' + ago(job.postedAt) : ''}${tracked.has(job.id) ? ' · <b>In tracker</b>' : ''}</div>
         </div>
-      </li>`).join('') : `<li class="empty">${st.jobs.length ? 'No jobs match these filters.' : 'No jobs loaded yet. Load the feed, fetch boards, paste a job, or try the sample listings.'}</li>`;
+      </li>`;
+    }).join('') : `<li class="empty">${st.jobs.length ? (abroad && !st.showAbroad ? `No jobs near you match these filters. ${abroad} more are in other countries: tick "Include jobs abroad".` : 'No jobs match these filters.') : 'No jobs loaded yet. Load the feed, fetch boards, paste a job, or try the sample listings.'}</li>`;
   }
 
   function ago(iso) {
@@ -369,7 +420,21 @@ export function initJobs(ctx) {
   $('#load-sample').addEventListener('click', () => setJobs(SAMPLE_JOBS.map((j) => ({ ...j })), `${SAMPLE_JOBS.length} fictional sample listings`));
   $('#pj-add').addEventListener('click', addPasted);
   $('#f-q').addEventListener('input', (e) => { st.filters.q = e.target.value; renderList(); });
-  $('#f-loc').addEventListener('input', (e) => { st.filters.loc = e.target.value; renderList(); });
+  $('#place').addEventListener('click', (e) => {
+    if (e.target.closest('[data-place-edit]')) { st.editingPlace = true; renderPlace(); return; }
+    if (e.target.closest('[data-place-save]')) {
+      st.place = { city: $('#pl-city').value.trim(), region: $('#pl-region').value.trim(), country: $('#pl-country').value.trim(), confirmed: true };
+      st.editingPlace = false; save(); renderPlace(); renderList();
+    }
+  });
+  document.querySelectorAll('[data-sort]').forEach((b) => b.addEventListener('click', () => { st.sort = b.dataset.sort; save(); renderList(); }));
+  document.querySelectorAll('[data-type]').forEach((b) => b.addEventListener('click', () => {
+    const t = b.dataset.type; const cur = new Set(st.filters.types || []);
+    if (!t) cur.clear(); else cur.has(t) ? cur.delete(t) : cur.add(t);
+    st.filters.types = [...cur]; save(); renderList();
+  }));
+  $('#side-income').addEventListener('click', () => { st.filters.types = ['part-time', 'contract']; st.sort = 'remote'; save(); renderList(); });
+  $('#f-abroad').addEventListener('change', (e) => { st.showAbroad = e.target.checked; save(); renderList(); });
   $('#f-remote').addEventListener('change', (e) => { st.filters.remote = e.target.checked; renderList(); });
   $('#job-list').addEventListener('click', (e) => { const li = e.target.closest('.job'); if (li) select(li.dataset.id); });
   $('#job-list').addEventListener('keydown', (e) => { const li = e.target.closest('.job'); if (li && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(li.dataset.id); } });
@@ -390,13 +455,16 @@ export function initJobs(ctx) {
   $('#ai-clear').addEventListener('click', () => { st.ai = { provider: '', model: '', baseUrl: '', apiKey: '' }; save(); renderSettings(); });
   $('#hosted-note').hidden = !ctx.isHosted();
 
-  renderList(); renderDetail(); renderTracker(); renderSettings();
+  st.jobs = withType(st.jobs || []);
+  $('#f-abroad').checked = !!st.showAbroad;
+  st.filters.types ||= [];
+  renderPlace(); renderList(); renderDetail(); renderTracker(); renderSettings();
   // Auto-load the published feed when served next to one and nothing is loaded yet.
   if (!st.jobs.length && defaultFeed()) loadFeed(defaultFeed());
 
   return {
     onResumeChange() { renderList(); if (st.selected && !st.applyStep) renderDetail(); },
-    onShow(tab) { if (tab === 'jobs') renderList(); if (tab === 'tracker') renderTracker(); },
+    onShow(tab) { if (tab === 'jobs') { if (!st.place?.confirmed) st.place = defaultPlace(); renderPlace(); renderList(); } if (tab === 'tracker') renderTracker(); },
     hostedChanged() { renderDetail(); syncSettings(); $('#hosted-note').hidden = !ctx.isHosted(); $('#feed-url').value = defaultFeed(); },
   };
 }

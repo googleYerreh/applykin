@@ -1,9 +1,9 @@
 // FICTIONAL sample listings so the Jobs tab can be tried anywhere (including offline).
 // Companies, links and pay are made up. Real listings come from the job feed.
 const d = (daysAgo) => new Date(Date.now() - daysAgo * 864e5).toISOString();
-const job = (id, company, title, location, remote, daysAgo, description, salary = null, department = '') => ({
+const job = (id, company, title, location, remote, daysAgo, description, salary = null, department = '', employmentType = 'Full-time') => ({
   id: `sample:${id}`, source: 'sample', sourceLabel: 'Sample', attribution: 'Fictional sample listing',
-  company, title, location, remote, workplace: remote ? 'Remote' : '', employmentType: 'Full-time', department, salary,
+  company, title, location, remote, workplace: remote ? 'Remote' : '', employmentType, department, salary,
   description, url: `https://example.com/jobs/${id}`, applyUrl: `https://example.com/jobs/${id}`, postedAt: d(daysAgo),
 });
 
@@ -32,4 +32,13 @@ export const SAMPLE_JOBS = [
     'Own a book of 40 B2B accounts. Run onboarding, quarterly reviews and renewals. Salesforce and Zendesk experience. Excellent communication and problem solving.', null, 'Customer Success'),
   job('da-10', 'Proseware Analytics (sample)', 'Data Analyst', 'Zurich, Switzerland', false, 10,
     'SQL, Python and Tableau. Build dashboards, run A/B testing analysis, and present findings to stakeholders. German and English required.', null, 'Data'),
+  job('ops-11', 'Pacific Supply Co. (sample)', 'Operations Manager', 'San Diego, CA', false, 2,
+    'Run day-to-day operations for our e-commerce warehouse: vendor management, inventory, KPI reporting and a team of 15. Amazon Seller Central and process improvement experience preferred.',
+    { min: 85000, max: 105000, currency: 'USD', interval: '1 YEAR', text: '$85K – $105K' }, 'Operations'),
+  job('pt-12', 'Ledgerly (sample)', 'Part-time Bookkeeper', 'Remote - US', true, 1,
+    'Part-time, 15–20 hours per week. Reconcile accounts and prepare monthly reports in QuickBooks for small-business clients. Flexible hours.',
+    { min: 25, max: 32, currency: 'USD', interval: 'hourly', text: '$25 – $32 / hour' }, 'Finance', 'Part-time'),
+  job('fl-13', 'MarketMakers (sample)', 'Freelance Amazon Listing Specialist', 'Remote', true, 3,
+    'Freelance, project-based. Optimize Amazon product listings, keywords and PPC campaigns for supplement and wellness brands. Paid per project.',
+    { min: 40, max: 60, currency: 'USD', interval: 'hourly', text: '$40 – $60 / hour' }, 'Marketing', 'Contract'),
 ];

@@ -105,3 +105,27 @@ test('tailoring per job: spelling, trim, headline are opt-in and never add facts
   const all = (x) => new Set(x.work.flatMap((w) => w.highlights));
   for (const h of all(t2.tailoredResume)) assert.ok(all(r).has(h), 'no new bullets');
 });
+
+test('Jobicy remote feed, job types and location tiers', async () => {
+  const C = await import('../core/index.js');
+  const jobs = C.SOURCES.jobicy.normalize(fx('jobicy')).map(C.finalizeJob);
+  assert.equal(jobs.length, 2);
+  assert.deepEqual(jobs.map((j) => j.jobType), ['part-time', 'contract']);
+  assert.match(jobs[0].attribution, /Jobicy/);
+  assert.equal(C.jobTypeOf({ title: 'Senior Engineer', description: 'This is a full-time role.' }), 'full-time');
+  assert.equal(C.jobTypeOf({ title: 'Werkstudent Marketing' }), 'internship');
+  const me = C.userPlace({ city: 'Temecula', region: 'CA' });
+  const tier = (location, extra = {}) => C.proximity(me, { location, ...extra }).tier;
+  assert.equal(tier('Temecula, CA'), 'city');
+  assert.equal(tier('San Diego, CA'), 'state');
+  assert.equal(tier('Austin, TX'), 'country');
+  assert.equal(tier('Remote - US'), 'remoteHome');
+  assert.equal(tier('Remote'), 'remoteAny');
+  assert.equal(tier('Remote - European Union'), 'remoteOther');
+  assert.equal(tier('Berlin, Germany'), 'abroad');
+  assert.equal(tier(jobs[0].location, jobs[0]), 'remoteHome');
+  const de = C.userPlace({ city: 'München', country: 'Germany' });
+  assert.equal(C.proximity(de, { location: 'Munich, Germany' }).tier, 'city');
+  assert.ok(C.tierRank('remote', 'remoteHome') < C.tierRank('remote', 'city'));
+  assert.ok(C.tierRank('near', 'city') < C.tierRank('near', 'remoteHome'));
+});

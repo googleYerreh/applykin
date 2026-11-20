@@ -53,8 +53,17 @@ Or add companies to `data/boards.json` by hand (`{ "source": "greenhouse", "slug
 | Lever | `api.lever.co/v0/postings/{slug}` | Public postings. About 1 request/second. |
 | Ashby | `api.ashbyhq.com/posting-api/job-board/{slug}` | Public, no key. |
 | Arbeitnow | `arbeitnow.com/api/job-board-api` | Free; credit "via Arbeitnow" on every listing. |
+| Jobicy | `jobicy.com/api/jobs` | Free remote jobs; credit "via Jobicy"; at most one pass per hour, 1 request/second. |
 
 Each source lives in `core/jobs.js` with its rate limit and terms. "Apply" always goes to the employer's own page. We don't scrape LinkedIn, Indeed or Glassdoor.
+
+## Jobs near you, remote, or on the side
+
+The Jobs tab asks where you are (pre-filled from your resume, editable, stored only in your browser) and groups jobs by distance: your city, your state, your country, remote jobs open to your country, remote anywhere, then remote-only-for-other-countries and jobs abroad (hidden unless you tick "Include jobs abroad"). Sort by **Closest first**, **Remote first** or **Best match**. Matching is text-based (city, state, country and region names, plus common job hubs), with no map service; "near" means same city, then same state, then same country.
+
+Every job is labelled **Full-time, Part-time, Contract / freelance or Internship** from the source's own field, the title, or the start of the ad. **Side income** shows remote part-time and freelance work first.
+
+Shared feeds are listed in `data/feeds.json` (Arbeitnow, and Jobicy for remote jobs including part-time; each listing credits its source). Company boards stay in `data/boards.json`.
 
 ## How matching works
 

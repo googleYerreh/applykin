@@ -1,0 +1,7 @@
+{
+  "_readme": "Shared job feeds collected on every run, in addition to the company boards in boards.json. Each feed's terms are in core/jobs.js; keep the credit line on every listing.",
+  "feeds": [
+    { "source": "arbeitnow", "pages": 3 },
+    { "source": "jobicy", "pages": 1 }
+  ]
+}

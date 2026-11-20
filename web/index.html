@@ -277,6 +277,21 @@ a.btn { text-decoration: none; display: inline-block; }
 .card-sent { font-size: 11.5px; color: var(--good); margin-top: 4px; }
 .results { max-width: 760px; margin: 0 auto 16px; } .results-main { font-size: 16px; } .results-table { border-collapse: collapse; font-size: 14px; } .results-table td { padding: 4px 16px 4px 0; border-bottom: 1px solid var(--line); }
 
+
+.place { padding: 12px 14px; margin-bottom: 10px; font-size: 14px; } .place-q { margin: 0 0 8px; }
+.place-fields { display: grid; grid-template-columns: 1fr 0.8fr 1.2fr auto; gap: 8px; align-items: end; } .place-fields .btn { white-space: nowrap; }
+.place-now { color: #3d4247; }
+.sort-bar { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.sort-bar button, .type-chips button { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 12px; cursor: pointer; font: inherit; font-size: 13px; color: var(--ink); }
+.sort-bar button[aria-pressed=true], .type-chips button[aria-pressed=true] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.type-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; } .side-btn { width: 100%; margin: 4px 0 8px; font-size: 13px; }
+.tier-head { list-style: none; font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 10px 2px 0; } .tier-head small { font-weight: 500; }
+.job-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; } .job-tags span { font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: #eceae4; color: #4b4f57; }
+.tag-near[data-tier=city], .tag-near[data-tier=state] { background: #e3f3ea !important; color: #1d6b45 !important; } .tag-near[data-tier=remoteHome], .tag-near[data-tier=remoteAny] { background: var(--accent-soft) !important; color: var(--accent) !important; }
+.tag-near[data-tier=remoteOther], .tag-near[data-tier=abroad] { background: #fbe9e5 !important; color: #a33a26 !important; }
+.tag-type { background: #fbf1dc !important; color: #8a5a00 !important; }
+@media (max-width: 760px) { .place-fields { grid-template-columns: 1fr 1fr; } }
+
 @media (max-width: 900px) {
   #workspace { grid-template-columns: 1fr; }
   .right { position: static; }
@@ -429,10 +444,20 @@ arbeitnow:1</textarea></label>
       <div id="jobs-status" class="status" hidden></div>
       <h3 style="margin-top:18px">Filter</h3>
       <label class="field wide"><span>Keywords</span><input id="f-q" placeholder="e.g. designer, Kotlin"></label>
-      <label class="field wide"><span>Location</span><input id="f-loc" placeholder="City or country"></label>
+      <p class="lbl">Job type</p>
+      <div class="type-chips">
+        <button type="button" data-type="">All</button><button type="button" data-type="full-time">Full-time</button>
+        <button type="button" data-type="part-time">Part-time</button><button type="button" data-type="contract">Contract / freelance</button><button type="button" data-type="internship">Internship</button>
+      </div>
+      <button type="button" class="btn ghost side-btn" id="side-income">Side income: remote part-time &amp; freelance</button>
       <label class="check"><input type="checkbox" id="f-remote"> Remote only</label>
+      <label class="check"><input type="checkbox" id="f-abroad"> Include jobs abroad <span id="abroad-count" class="hint"></span></label>
     </aside>
     <section class="jobs-main">
+      <div id="place" class="panel place"></div>
+      <div class="sort-bar" role="group" aria-label="Sort jobs"><span>Sort:</span>
+        <button type="button" data-sort="near">Closest first</button><button type="button" data-sort="remote">Remote first</button><button type="button" data-sort="match">Best match</button>
+      </div>
       <div class="list-head"><span id="feed-info"></span><span id="no-resume-note" class="note-inline">Add your resume for match scores.</span></div>
       <ol id="job-list"></ol>
     </section>

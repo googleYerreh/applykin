@@ -20,11 +20,18 @@ teaching curriculum lesson planning classroom management tutoring
 technical writing documentation editing translation german english french spanish
 security penetration testing soc siem iam networking tcp/ip cisco itil helpdesk active directory
 leadership team leadership people management cross-functional collaboration communication problem solving
+amazon seller central ppc e-commerce ecommerce marketplace shopify etsy walmart listing optimization product listings inventory management vendor management supplier management
+operations management process improvement sops kpi kpis p&l budgeting pricing revenue management forecasting merchandising retail wholesale sourcing fulfillment
+hospitality property management short-term rentals airbnb guest experience front desk housekeeping facilities maintenance scheduling dispatch
+sales management account executive membership sales quota coaching recruiting onboarding training customer experience retention upselling
+bookkeeping accounts payable accounts receivable reconciliation invoicing data entry virtual assistant admin administrative transcription tutoring
 `.trim();
 
 const VOCAB = [...new Set(SKILL_VOCAB.split(/\s+/).join(' ').match(/\S+/g))];
 // Multi-word phrases recognized as one skill.
-const PHRASES = ['machine learning', 'deep learning', 'computer vision', 'data analysis', 'data science', 'power bi', 'google cloud', 'github actions', 'spring boot',
+const PHRASES = ['amazon seller central', 'listing optimization', 'product listings', 'inventory management', 'vendor management', 'supplier management', 'operations management',
+  'process improvement', 'revenue management', 'property management', 'short-term rentals', 'guest experience', 'front desk', 'sales management', 'account executive',
+  'membership sales', 'customer experience', 'accounts payable', 'accounts receivable', 'data entry', 'virtual assistant', 'machine learning', 'deep learning', 'computer vision', 'data analysis', 'data science', 'power bi', 'google cloud', 'github actions', 'spring boot',
   'adobe xd', 'after effects', 'design systems', 'interaction design', 'visual design', 'user research', 'user interviews', 'usability testing', 'journey mapping',
   'information architecture', 'motion design', 'product management', 'a/b testing', 'stakeholder management', 'content marketing', 'social media', 'email marketing',
   'marketing automation', 'account management', 'business development', 'lead generation', 'cold calling', 'customer success', 'customer service', 'customer support',
@@ -77,7 +84,14 @@ export function resumeText(r) {
 }
 
 export function resumeSkillList(r) {
-  return (r.skills || []).flatMap((s) => s.keywords || []).map((k) => k.toLowerCase());
+  const out = new Set();
+  for (const k of (r.skills || []).flatMap((s) => s.keywords || [])) {
+    const low = k.toLowerCase().trim();
+    out.add(low);
+    // "Amazon PPC & Advertising" -> "amazon ppc", "advertising"; "Sales & Customer Relationship Management" -> parts too
+    for (const part of low.split(/\s*(?:&|\band\b|\/|,)\s*/)) if (part.length >= 3 && part !== low) out.add(part.trim());
+  }
+  return [...out];
 }
 
 export function resumeProfile(r) {

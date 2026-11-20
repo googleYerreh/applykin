@@ -101,7 +101,52 @@ export const SOURCES = {
       postedAt: toISO(j.created_at > 1e12 ? j.created_at : j.created_at * 1000),
     })),
   },
+  jobicy: {
+    label: 'Jobicy',
+    kind: 'feed',
+    endpoint: () => 'https://jobicy.com/api/jobs?count=100',
+    docs: 'https://jobicy.com/jobs-rss-feed',
+    rateLimitMs: 1500,
+    terms: 'Free remote-jobs API. Credit Jobicy as the source on every listing; at most one automated pass per hour; max 1 request per second.',
+    attribution: 'via Jobicy',
+    normalize: (raw) => (raw.jobs || raw.data || []).map((j) => ({
+      id: `jobicy:${j.id}`,
+      source: 'jobicy',
+      company: j.companyName,
+      title: decodeEntities(j.jobTitle || ''),
+      location: `Remote${j.jobGeo ? ' - ' + j.jobGeo : ''}`,
+      remote: true,
+      remoteScope: j.jobGeo || '',
+      workplace: 'Remote',
+      employmentType: (Array.isArray(j.jobType) ? j.jobType : [j.jobType]).filter(Boolean).join(', '),
+      department: (Array.isArray(j.jobIndustry) ? j.jobIndustry : [j.jobIndustry]).filter(Boolean).map((x) => decodeEntities(String(x))).join(', '),
+      salary: j.salaryMin || j.salaryMax ? { min: j.salaryMin, max: j.salaryMax, currency: j.salaryCurrency, interval: j.salaryPeriod,
+        text: [j.salaryMin, j.salaryMax].filter(Boolean).map((n) => Number(n).toLocaleString('en-US')).join(' – ') + (j.salaryCurrency ? ` ${j.salaryCurrency}` : '') + (j.salaryPeriod ? ` / ${j.salaryPeriod}` : '') } : null,
+      description: htmlToText(j.jobDescription || j.jobExcerpt || ''),
+      url: j.url,
+      applyUrl: j.url,
+      postedAt: toISO(j.pubDate),
+    })),
+  },
 };
+
+// ---------- job type ----------
+// Full-time, part-time, contract/freelance or internship, from the source's own field first, then the title, then the opening of the ad.
+const TYPE_RULES = [
+  ['internship', /\b(intern(ship)?|praktikum|werkstudent(in)?|working student|stage|stagiaire|apprentice(ship)?|trainee)\b/i],
+  ['part-time', /\b(part[- ]?time|teilzeit|temps partiel|minijob|\d{1,2}\s?(?:-|–|to)?\s?\d{0,2}\s?(?:hours|hrs|h)\s?(?:per|\/|a)\s?week)\b/i],
+  ['contract', /\b(contract(or)?|freelance(r)?|temporary|temp\b|fixed[- ]term|befristet|interim|hourly|per hour|gig|1099|consultant \(contract\)|project[- ]based)\b/i],
+  ['full-time', /\b(full[- ]?time|vollzeit|temps plein|permanent|cdi)\b/i],
+];
+export const JOB_TYPE_LABELS = { 'full-time': 'Full-time', 'part-time': 'Part-time', contract: 'Contract / freelance', internship: 'Internship' };
+export function jobTypeOf(j) {
+  const own = String(j.employmentType || '').replace(/([a-z])([A-Z])/g, '$1 $2');
+  for (const text of [own, j.title || '', String(j.description || '').slice(0, 700)]) {
+    if (!text) continue;
+    for (const [type, re] of TYPE_RULES) if (re.test(text)) return type;
+  }
+  return '';
+}
 
 // ---------- helpers ----------
 export function decodeEntities(s) {
@@ -149,6 +194,7 @@ export function finalizeJob(j) {
     ...j,
     sourceLabel: src?.label || j.source,
     attribution: src?.attribution || `from ${j.company}'s ${src?.label || ''} job board`.replace(/\s+/g, ' '),
+    jobType: j.jobType || jobTypeOf(j),
     description: (j.description || '').slice(0, 20000),
   };
 }

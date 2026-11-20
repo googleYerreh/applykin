@@ -11,7 +11,12 @@ const boardsPath = arg('--boards', 'data/boards.json');
 const outPath = arg('--out', 'dist/jobs.json');
 const maxAgeDays = Number(arg('--max-age', 45));
 
-const { boards } = JSON.parse(await readFile(boardsPath, 'utf8'));
+const { boards: companyBoards } = JSON.parse(await readFile(boardsPath, 'utf8'));
+// Shared feeds (Arbeitnow, Jobicy…) live in data/feeds.json; a feed listed there replaces any copy in boards.json.
+let feeds = [];
+try { feeds = JSON.parse(await readFile(arg('--feeds', 'data/feeds.json'), 'utf8')).feeds || []; } catch {}
+const feedSources = new Set(feeds.map((f) => f.source));
+const boards = [...companyBoards.filter((b) => !feedSources.has(b.source)), ...feeds];
 const started = Date.now();
 const { jobs, errors } = await fetchBoards(boards, fetch, {
   maxAgeDays,

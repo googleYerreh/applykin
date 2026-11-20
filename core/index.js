@@ -2,7 +2,8 @@ export { parseResume, normalizeDate, findDateRange, PARSER_VERSION } from './par
 export { scoreResume, RUBRIC, CATEGORIES, isActionVerb, EVIDENCE_LEVELS, EVIDENCE_SOURCES, RULE_EVIDENCE } from './score.js';
 export { renderResumeHTML, renderLetterHTML, formatDate, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN, ATS_LEVELS } from './render.js';
 export { extractPdfText, extractDocxText, detectKind } from './extract.js';
-export { SOURCES, fetchSource, fetchBoards, dedupeJobs, finalizeJob, htmlToText, decodeEntities } from './jobs.js';
+export { SOURCES, fetchSource, fetchBoards, dedupeJobs, finalizeJob, htmlToText, decodeEntities, jobTypeOf, JOB_TYPE_LABELS } from './jobs.js';
+export { parsePlace, userPlace, proximity, tierRank, countryFromTimeZone, TIERS, COUNTRIES, US_STATES } from './geo.js';
 export { rankJobs, matchJob, extractSkills, resumeProfile, buildIndex, SKILL_VOCAB } from './match.js';
 export { tailorResume } from './tailor.js';
 export { templateLetter, letterPrompt, bulletPrompt } from './letter.js';
