@@ -1,0 +1,26 @@
+Lukas Bauer
+Softwareentwickler
+München, Bayern · lukas.bauer@example.de · +49 151 2345 6789 · github.com/lbauer
+
+Profil
+Backend-Entwickler mit 5 Jahren Erfahrung in Java und Kotlin.
+
+Berufserfahrung
+Backend Developer | Alpenbank AG    04/2021 – heute
+• Built a payments API handling 2 million requests per day
+• Cut build times by 40% by migrating CI to GitHub Actions
+• Led code reviews for a team of 6 engineers
+
+Werkstudent Softwareentwicklung | Siemens AG    10/2018 – 03/2021
+• Developed internal tools in Kotlin used by 300 employees
+• Wrote integration tests that raised coverage from 45% to 80%
+
+Ausbildung
+M.Sc. Informatik — Technische Universität München    2017 – 2020
+B.Sc. Informatik — Universität Augsburg    2014 – 2017
+
+Kenntnisse
+Java, Kotlin, Spring Boot, PostgreSQL, Docker, Kubernetes, AWS
+
+Sprachen
+Deutsch (Muttersprache), Englisch (C1)

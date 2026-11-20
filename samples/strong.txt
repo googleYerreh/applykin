@@ -1,0 +1,35 @@
+MARIA GONZALEZ
+Senior Product Designer
+Austin, TX | maria.gonzalez@example.com | (512) 555-0182 | linkedin.com/in/mariagonzalez | mariagonzalez.design
+
+SUMMARY
+Product designer with 8 years of experience shipping B2B SaaS products. Led design for a payments dashboard used by 40,000 merchants. Looking for a senior or lead role on a product team that values research.
+
+EXPERIENCE
+Senior Product Designer — Paylane    Mar 2021 – Present
+Austin, TX
+• Led the redesign of the merchant dashboard, cutting support tickets by 32% in six months
+• Built a design system of 120 components adopted by 5 product teams
+• Ran 45 user interviews and turned findings into a roadmap for 2023
+• Mentored 3 junior designers, two of whom were promoted
+
+Product Designer — Brightloop    Jun 2018 – Feb 2021
+Remote
+• Designed onboarding flows that lifted trial-to-paid conversion from 9% to 14%
+• Partnered with engineering to ship 18 features on a two-week release cycle
+• Created usability test plans and reported results to leadership monthly
+
+UX Designer — Fieldhouse Agency    Jul 2016 – May 2018
+• Delivered websites and apps for 12 clients in retail and healthcare
+• Introduced a prototyping process in Figma that halved review cycles
+
+EDUCATION
+B.A. in Graphic Design — University of Texas at Austin    2012 – 2016
+
+SKILLS
+Design: Figma, Sketch, Prototyping, Design Systems, Interaction Design
+Research: User Interviews, Usability Testing, Surveys, Journey Mapping
+Tools: Jira, Notion, HTML, CSS
+
+LANGUAGES
+English (native), Spanish (fluent)

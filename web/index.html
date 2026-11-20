@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenStep — free resume checker</title>
+<style>
+:root {
+  --bg: #f6f5f1; --panel: #fff; --ink: #1b1d1f; --muted: #5f646b; --line: #e3e1da; --accent: #1d5c4d; --accent-soft: #e4efe9;
+  --good: #23855f; --ok: #c58a12; --low: #c2412d; --radius: 10px;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-size: 15px; line-height: 1.45; }
+button, input, select, textarea { font: inherit; color: inherit; }
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+.brand { font-weight: 750; font-size: 18px; letter-spacing: -0.01em; }
+.brand span { color: var(--accent); }
+.tag { color: var(--muted); font-size: 13px; }
+.tag b { color: var(--accent); font-weight: 600; }
+main { max-width: 1320px; margin: 0 auto; padding: 24px; }
+
+/* start screen */
+#start { max-width: 760px; margin: 32px auto; }
+#start h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 10px; }
+#start p.lead { color: var(--muted); font-size: 17px; margin: 0 0 24px; }
+#drop { display: block; border: 2px dashed #bdbab0; border-radius: 14px; background: var(--panel); padding: 40px 24px; text-align: center; cursor: pointer; transition: .15s; }
+#drop.over, #drop:hover { border-color: var(--accent); background: var(--accent-soft); }
+#drop strong { display: block; font-size: 18px; margin-bottom: 4px; }
+#drop small { color: var(--muted); }
+#file { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; margin: 20px 0; }
+.or::before, .or::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
+#paste { width: 100%; min-height: 120px; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: var(--panel); resize: vertical; }
+.row-end { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.samples { color: var(--muted); font-size: 13px; }
+.samples button { background: none; border: 0; color: var(--accent); text-decoration: underline; cursor: pointer; padding: 0 2px; }
+.btn { border: 1px solid var(--accent); background: var(--accent); color: #fff; padding: 9px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.btn.ghost { background: var(--panel); color: var(--accent); }
+.btn:hover { filter: brightness(1.08); }
+.status { margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); }
+.status.error { background: #fbe9e5; color: var(--low); }
+.promise { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 32px; }
+.promise div { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-size: 13px; color: var(--muted); }
+.promise b { display: block; color: var(--ink); font-size: 14px; margin-bottom: 2px; }
+
+/* workspace */
+#workspace { display: grid; grid-template-columns: minmax(340px, 440px) 1fr; gap: 20px; align-items: start; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.left { display: flex; flex-direction: column; gap: 16px; }
+.score-head { display: flex; gap: 18px; align-items: center; }
+#overall-ring { --p: 0; width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  background: conic-gradient(var(--c) calc(var(--p) * 1%), #eceae4 0); --c: var(--low); }
+#overall-ring[data-band=ok] { --c: var(--ok); } #overall-ring[data-band=good] { --c: var(--good); }
+#overall-ring::before { content: ''; position: absolute; }
+.ring-inner { width: 76px; height: 76px; border-radius: 50%; background: var(--panel); display: grid; place-items: center; text-align: center; }
+#overall { font-size: 30px; font-weight: 750; line-height: 1; }
+.ring-inner small { display: block; font-size: 11px; color: var(--muted); }
+#verdict { font-weight: 600; margin: 0 0 4px; }
+.score-head p.sub { margin: 0; color: var(--muted); font-size: 13px; }
+#cats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin-top: 16px; }
+.cat-row { display: flex; justify-content: space-between; font-size: 13px; }
+.bar { height: 6px; background: #eceae4; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.bar i { display: block; height: 100%; background: var(--low); border-radius: 4px; transition: width .3s; }
+.bar i[data-band=ok] { background: var(--ok); } .bar i[data-band=good] { background: var(--good); }
+h3 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+#fixes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+#fixes li { border-left: 3px solid var(--ok); padding: 2px 0 2px 10px; }
+#fixes li.none { border-color: var(--good); color: var(--muted); }
+.fix-head { display: flex; justify-content: space-between; gap: 8px; }
+.gain { color: var(--accent); font-weight: 600; font-size: 13px; white-space: nowrap; }
+.fix-detail { color: var(--muted); font-size: 13px; }
+.fix-do { font-size: 14px; margin-top: 2px; }
+details.how summary { cursor: pointer; color: var(--accent); font-size: 13px; font-weight: 600; }
+#rubric h4 { margin: 14px 0 6px; font-size: 13px; } #rubric h4 small { color: var(--muted); font-weight: 400; }
+#rubric ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+#rubric li { display: flex; gap: 8px; } #rubric li small { color: var(--muted); }
+.dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 5px; flex: none; background: var(--muted); }
+[data-state=pass] .dot { background: var(--good); } [data-state=part] .dot { background: var(--ok); } [data-state=fail] .dot { background: var(--low); } [data-state=na] .dot { background: #d6d3cb; }
+
+#editor details { border-top: 1px solid var(--line); padding: 10px 0; }
+#editor details:first-child { border-top: 0; padding-top: 0; }
+#editor summary { cursor: pointer; font-weight: 650; padding: 4px 0; }
+#editor summary small { color: var(--muted); font-weight: 400; margin-left: 4px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-top: 8px; }
+.field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+.field.wide { grid-column: 1 / -1; }
+.field input, .field textarea { border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px; font-size: 14px; background: #fcfcfa; color: var(--ink); width: 100%; }
+.field textarea { resize: vertical; line-height: 1.4; }
+.field input:focus, .field textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+.entry-card { border: 1px solid var(--line); border-radius: 9px; padding: 10px; margin-top: 10px; }
+.entry-tools { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; }
+.entry-tools button { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; width: 28px; height: 26px; cursor: pointer; margin-left: 4px; }
+.entry-tools button:disabled { opacity: .35; cursor: default; }
+button.add { margin-top: 10px; border: 1px dashed #bdbab0; background: none; border-radius: 8px; padding: 7px 12px; cursor: pointer; color: var(--accent); width: 100%; }
+
+.right { position: sticky; top: 74px; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.toolbar label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+.toolbar select { border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; background: var(--panel); }
+.toolbar .spacer { flex: 1; }
+.paper { background: #d9d6ce; border-radius: 14px; padding: 16px; }
+#preview { width: 100%; height: calc(100vh - 190px); min-height: 600px; border: 0; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.footnote { color: var(--muted); font-size: 12px; margin-top: 8px; }
+#new { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 13px; text-decoration: underline; }
+
+
+nav.tabs { display: flex; gap: 4px; }
+nav.tabs button { border: 0; background: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: var(--muted); font-weight: 600; }
+nav.tabs button[aria-current=page] { background: var(--accent-soft); color: var(--accent); }
+.note { background: #fff6df; border: 1px solid #f0dca6; padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
+.note-inline { color: var(--muted); font-size: 13px; }
+.hint { color: var(--muted); font-size: 12px; }
+.placeholder { color: var(--muted); padding: 24px; text-align: center; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; margin-top: 8px; }
+.jobs-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr) minmax(0, 1.15fr); gap: 16px; align-items: start; }
+.jobs-side .field, .settings .field { margin-bottom: 8px; }
+.jobs-side details { margin: 12px 0; } .jobs-side summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.jobs-side .btn { margin-top: 4px; }
+.list-head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+#job-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.job { display: flex; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; cursor: pointer; }
+.job:hover, .job:focus { border-color: var(--accent); outline: none; } .job.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.job.empty { cursor: default; color: var(--muted); display: block; }
+.job-score { flex: none; width: 52px; height: 52px; border-radius: 10px; display: grid; place-items: center; text-align: center; font-weight: 750; font-size: 18px; line-height: 1; background: #fbe9e5; color: var(--low); }
+.job-score small { display: block; font-size: 10px; font-weight: 500; }
+.job-score[data-band=none] { background: #eceae4; color: var(--muted); }
+.job-score[data-band=ok] { background: #fbf1dc; color: #9a6a06; } .job-score[data-band=good] { background: var(--accent-soft); color: var(--good); }
+.job-title { font-weight: 650; } .job-meta { font-size: 13px; color: #3d4247; }
+.job-why { font-size: 12.5px; color: var(--muted); margin-top: 3px; } .job-src { font-size: 12px; color: var(--muted); margin-top: 3px; }
+#job-detail { position: sticky; top: 74px; max-height: calc(100vh - 96px); overflow: auto; }
+.detail-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.detail-head h2 { margin: 0 0 2px; font-size: 20px; }
+.detail-actions { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+a.btn { text-decoration: none; display: inline-block; }
+.tailor, .letter { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 12px; }
+.cov { font-size: 12px; text-transform: none; letter-spacing: 0; color: var(--accent); margin-left: 6px; }
+.lbl { font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
+.chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12.5px; margin: 0 4px 4px 0; border: 1px solid; }
+.chip.good { background: var(--accent-soft); border-color: #bcd8cb; } .chip.ok { background: #fbf1dc; border-color: #ecd8a8; } .chip.low { background: #fbe9e5; border-color: #f0c9bf; }
+.sugg { padding-left: 18px; font-size: 14px; } .sugg li { margin: 4px 0; }
+.letter-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.letter-head h3 { margin: 0; } .letter-head .btn { padding: 6px 10px; font-size: 13px; }
+#letter-text { width: 100%; margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 12px; font: 14px/1.5 ui-serif, Georgia, serif; resize: vertical; background: #fcfcfa; }
+.desc { margin-top: 14px; } .desc summary { cursor: pointer; font-weight: 600; } .desc-body { font-size: 14px; margin-top: 8px; color: #33373b; }
+#board { display: grid; grid-template-columns: repeat(6, minmax(200px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 8px; }
+.col { background: #ecebe5; border-radius: 12px; padding: 10px; min-height: 200px; }
+.col h4 { margin: 2px 4px 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); } .col h4 small { font-weight: 400; }
+.col-empty { color: #aaa; text-align: center; padding: 20px 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-bottom: 8px; font-size: 13px; }
+.card-title { font-weight: 650; font-size: 14px; }
+.card select, .card textarea { width: 100%; margin-top: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 5px; font-size: 13px; background: #fcfcfa; }
+.card-actions { display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; } .card-actions button, .card-actions a { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font-size: 12.5px; text-decoration: underline; }
+.card-actions [data-remove] { color: var(--muted); } .card-date { color: var(--muted); font-size: 11px; margin-top: 4px; }
+.settings { max-width: 680px; margin: 0 auto; } .settings p { color: #3d4247; } .settings select { width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px; font-size: 14px; background: #fcfcfa; }
+@media (max-width: 1200px) { .jobs-layout { grid-template-columns: 280px minmax(0, 1fr); } #job-detail { grid-column: 1 / -1; position: static; max-height: none; } }
+@media (max-width: 760px) { .jobs-layout { grid-template-columns: 1fr; } nav.tabs button { padding: 6px 8px; font-size: 13px; } #board { grid-template-columns: repeat(6, 78vw); } }
+
+@media (max-width: 900px) {
+  #workspace { grid-template-columns: 1fr; }
+  .right { position: static; }
+  #preview { height: 80vh; }
+  .promise { grid-template-columns: 1fr; }
+  header.top .tag { display: none; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Open<span>Step</span></div>
+  <nav class="tabs" aria-label="Sections">
+    <button type="button" data-tab="resume">Resume</button>
+    <button type="button" data-tab="jobs">Jobs</button>
+    <button type="button" data-tab="tracker">Tracker <span id="tracker-count"></span></button>
+    <button type="button" data-tab="settings">Settings</button>
+  </nav>
+  <button id="new" type="button" hidden>Start over</button>
+</header>
+<main>
+<div data-panel="resume">
+  <section id="start">
+    <h1>Check your resume for free.</h1>
+    <p class="lead">Get a score you can understand, a ranked list of fixes, and a clean ATS-friendly PDF. No account, no paywall, no upload to a server.</p>
+    <label id="drop">
+      <input id="file" type="file" accept=".pdf,.docx,.txt,.json,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/json">
+      <strong>Drop your resume here, or click to choose</strong>
+      <small>PDF, Word (.docx), plain text, or JSON Resume</small>
+    </label>
+    <div class="or">or paste the text</div>
+    <textarea id="paste" placeholder="Paste your resume text here…"></textarea>
+    <div class="row-end">
+      <div class="samples">No resume handy? Try a sample:
+        <button type="button" data-sample="weak">weak</button>·<button type="button" data-sample="strong">strong</button>·<button type="button" data-sample="german">German</button></div>
+      <button class="btn" id="paste-go" type="button">Check pasted text</button>
+    </div>
+    <div id="status" class="status" hidden></div>
+    <div class="promise">
+      <div><b>Open scoring</b>Every one of the <span id="rule-count"></span> rules and its weight is shown. No black box.</div>
+      <div><b>Private by design</b>Parsing, scoring and export all run in your browser.</div>
+      <div><b>Free downloads</b>Unlimited PDF, HTML and JSON Resume exports.</div>
+    </div>
+  </section>
+
+  <section id="workspace" hidden>
+    <div class="left">
+      <div class="panel">
+        <div class="score-head">
+          <div id="overall-ring"><div class="ring-inner"><div><div id="overall">0</div><small>of 100</small></div></div></div>
+          <div><p id="verdict"></p><p class="sub">Edit below and the score updates as you type.</p></div>
+        </div>
+        <div id="cats"></div>
+      </div>
+      <div class="panel">
+        <h3>Top fixes</h3>
+        <ol id="fixes"></ol>
+        <details class="how" style="margin-top:14px"><summary>How the score works</summary><div id="rubric"></div></details>
+      </div>
+      <div class="panel"><h3>Edit your resume</h3><div id="editor"></div></div>
+    </div>
+    <div class="right">
+      <div class="toolbar">
+        <label>Template<select id="template"></select></label>
+        <label>Country format<select id="locale"></select></label>
+        <span class="spacer"></span>
+        <button class="btn ghost" id="dl-json" type="button">JSON</button>
+        <button class="btn ghost" id="dl-html" type="button">HTML</button>
+        <button class="btn" id="dl-pdf" type="button">Download PDF</button>
+      </div>
+      <div class="paper"><iframe id="preview" title="Resume preview"></iframe></div>
+      <p class="footnote" id="print-note">"Download PDF" opens your browser's print dialog. Choose "Save as PDF". The text stays selectable, so ATS software can read it.</p>
+    </div>
+  </section>
+</div>
+
+<div data-panel="jobs" hidden>
+  <div class="jobs-layout">
+    <aside class="panel jobs-side">
+      <h3>Find jobs</h3>
+      <div id="hosted-note" class="note" hidden>This hosted preview can't reach other websites, so the live feed and AI are off here. Try the sample listings or paste a job. The downloadable app has everything.</div>
+      <label class="field wide"><span>Job feed address</span><input id="feed-url" placeholder="https://…/jobs.json"></label>
+      <button class="btn" type="button" id="load-feed">Load feed</button>
+      <details><summary>Fetch live from company boards</summary>
+        <label class="field wide"><span>One per line: source:company (greenhouse, lever, ashby) or arbeitnow:pages</span>
+        <textarea id="live-boards" rows="4">greenhouse:gitlab
+lever:palantir
+ashby:ashby
+arbeitnow:1</textarea></label>
+        <button class="btn ghost" type="button" id="load-live">Fetch now</button>
+      </details>
+      <details><summary>Paste a job from anywhere</summary>
+        <div class="grid">
+          <label class="field"><span>Job title</span><input id="pj-title"></label>
+          <label class="field"><span>Company</span><input id="pj-company"></label>
+          <label class="field wide"><span>Link (optional)</span><input id="pj-url" placeholder="https://"></label>
+          <label class="field wide"><span>Job description</span><textarea id="pj-desc" rows="6"></textarea></label>
+        </div>
+        <button class="btn ghost" type="button" id="pj-add">Add job</button>
+      </details>
+      <p class="samples">Just looking? <button type="button" id="load-sample">Load sample listings</button> (fictional)</p>
+      <div id="jobs-status" class="status" hidden></div>
+      <h3 style="margin-top:18px">Filter</h3>
+      <label class="field wide"><span>Keywords</span><input id="f-q" placeholder="e.g. designer, Kotlin"></label>
+      <label class="field wide"><span>Location</span><input id="f-loc" placeholder="City or country"></label>
+      <label class="check"><input type="checkbox" id="f-remote"> Remote only</label>
+    </aside>
+    <section class="jobs-main">
+      <div class="list-head"><span id="feed-info"></span><span id="no-resume-note" class="note-inline">Add your resume for match scores.</span></div>
+      <ol id="job-list"></ol>
+    </section>
+    <section class="panel" id="job-detail"></section>
+  </div>
+</div>
+
+<div data-panel="tracker" hidden>
+  <p id="tracker-empty" class="placeholder">Jobs you save show up here. Move them through the stages as you apply.</p>
+  <div id="board"></div>
+</div>
+
+<div data-panel="settings" hidden>
+  <div class="panel settings" id="settings">
+    <h3>AI writing help (optional)</h3>
+    <p>Everything works without AI. Turn it on to polish cover letters. You choose where requests go: a free model on your own computer, or your own API key. Keys are stored only in this browser.</p>
+    <div id="ai-hosted" class="note" hidden>AI calls are blocked on this hosted preview. Use the downloadable app.</div>
+    <label class="field wide"><span>Provider</span><select id="ai-provider"></select></label>
+    <div id="ai-fields" class="grid">
+      <label class="field"><span>Model</span><input id="ai-model"></label>
+      <label class="field"><span>Server address</span><input id="ai-base"></label>
+      <label class="field wide" id="ai-key-row"><span>API key</span><input id="ai-key" type="password" autocomplete="off"></label>
+      <div class="wide row-end"><span id="ai-test-out" class="hint"></span><span><button class="btn ghost" type="button" id="ai-clear">Forget settings</button> <button class="btn" type="button" id="ai-test">Test</button></span></div>
+    </div>
+    <p class="hint">Free option: install <a href="https://ollama.com" target="_blank" rel="noopener">Ollama</a>, run <code>ollama pull llama3.1:8b</code>, and start it with <code>OLLAMA_ORIGINS=*</code> so this page may talk to it.</p>
+  </div>
+</div>
+</main>
+<script type="module">/*APP*/</script>
+</body>
+</html>

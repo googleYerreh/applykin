@@ -1,0 +1,25 @@
+{
+  "name": "openstep",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "build": "node scripts/build-web.js",
+    "mcp": "node mcp/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "AGPL-3.0-only",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "esbuild": "^0.28.2",
+    "mammoth": "^1.13.0",
+    "pdfjs-dist": "^4.10.38",
+    "zod": "^4.6.7"
+  },
+  "type": "module",
+  "bin": {
+    "openstep": "bin/openstep.js"
+  }
+}

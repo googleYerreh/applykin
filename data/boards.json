@@ -1,0 +1,17 @@
+{
+  "_readme": "Company job boards to collect. Add a board with {source, slug} (slug = the name in the board's URL) and an optional display name in company. Feeds (arbeitnow) take pages instead of slug. verified=true means the endpoint answered when this list was made.",
+  "boards": [
+    { "source": "greenhouse", "slug": "gitlab", "company": "GitLab", "verified": true },
+    { "source": "lever", "slug": "palantir", "company": "Palantir", "verified": true },
+    { "source": "ashby", "slug": "ashby", "company": "Ashby", "verified": true },
+    { "source": "arbeitnow", "pages": 3, "verified": true },
+    { "source": "greenhouse", "slug": "cloudflare", "company": "Cloudflare" },
+    { "source": "greenhouse", "slug": "datadog", "company": "Datadog" },
+    { "source": "greenhouse", "slug": "stripe", "company": "Stripe" },
+    { "source": "greenhouse", "slug": "airbnb", "company": "Airbnb" },
+    { "source": "greenhouse", "slug": "discord", "company": "Discord" },
+    { "source": "ashby", "slug": "linear", "company": "Linear" },
+    { "source": "ashby", "slug": "ramp", "company": "Ramp" },
+    { "source": "lever", "slug": "spotify", "company": "Spotify" }
+  ]
+}
