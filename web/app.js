@@ -2,9 +2,10 @@
 import * as pdfjs from 'pdfjs-dist/build/pdf.mjs';
 import workerSource from 'pdfjs-dist/build/pdf.worker.min.mjs';
 import mammoth from 'mammoth/mammoth.browser.min.js';
-import { parseResume, scoreResume, renderResumeHTML, extractPdfText, extractDocxText, detectKind, RUBRIC, CATEGORIES, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN, ATS_LEVELS, PARSER_VERSION } from '../core/index.js';
+import { parseResume, scoreResume, renderResumeHTML, extractPdfText, extractDocxText, detectKind, RUBRIC, CATEGORIES, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN, ATS_LEVELS, PARSER_VERSION, isActionVerb } from '../core/index.js';
 import { SAMPLES } from './samples.js';
 import { initJobs } from './jobs-ui.js';
+import { initGuide } from './guide.js';
 
 pdfjs.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }));
 
@@ -13,17 +14,17 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const STORE = 'applykin.v1';
 const OLD_STORE = 'openstep.v1'; // data saved before the rename
 
-const state = { resume: null, template: 'classic', locale: 'us', fileName: '', design: { ...DEFAULT_DESIGN } };
+const state = { resume: null, template: 'classic', locale: 'us', fileName: '', design: { ...DEFAULT_DESIGN }, mode: 'guided', step: 'overview' };
 const renderOpts = () => ({ template: state.template, locale: state.locale, design: state.design });
 
 // ---------- storage (best effort; some contexts block it) ----------
 function save() {
-  try { localStorage.setItem(STORE, JSON.stringify({ resume: state.resume, template: state.template, locale: state.locale, design: state.design })); } catch {}
+  try { localStorage.setItem(STORE, JSON.stringify({ resume: state.resume, template: state.template, locale: state.locale, design: state.design, mode: state.mode, step: state.step })); } catch {}
 }
 function restore() {
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || localStorage.getItem(OLD_STORE) || 'null');
-    if (s?.resume) Object.assign(state, s, { design: { ...DEFAULT_DESIGN, ...(s.design || {}) } });
+    if (s?.resume) Object.assign(state, s, { design: { ...DEFAULT_DESIGN, ...(s.design || {}) }, mode: s.mode || 'guided', step: s.step || 'overview' });
     const m = state.resume?.meta;
     if (m?.openstep && !m.applykin) { m.applykin = m.openstep; delete m.openstep; }
   } catch {}
@@ -54,6 +55,8 @@ async function importFile(file) {
 
 function load(resume) {
   state.resume = resume;
+  state.mode = 'guided';
+  state.step = 'overview';
   if (/[äöüß]|berufserfahrung|ausbildung/i.test(resume.meta?.applykin?.sourceText || '')) state.locale = state.locale === 'us' ? 'de' : state.locale;
   save();
   $('#start').hidden = true;
@@ -90,6 +93,9 @@ function refresh() {
   $('#rubric').innerHTML = Object.entries(CATEGORIES).map(([k, c]) => `
     <h4>${esc(c.label)} <small>${Math.round(c.weight * 100)}% of total</small></h4>
     <ul>${s.checks.filter((x) => x.category === k).map((x) => `<li data-state="${x.score === null ? 'na' : x.score >= 1 ? 'pass' : x.score > 0 ? 'part' : 'fail'}"><span class="dot"></span><span><b>${esc(x.title)}</b> <small>weight ${x.weight}</small><br>${esc(x.detail)}</span></li>`).join('')}</ul>`).join('');
+  guideUI?.render(s);
+  updateScorePill(s.overall);
+  updateBulletHints();
   const html = renderResumeHTML(r, renderOpts());
   const frame = $('#preview');
   frame.srcdoc = html;
@@ -128,7 +134,8 @@ function renderEditor() {
         <div class="grid">${field(`work.${i}.position`, 'Job title', w.position)}${field(`work.${i}.name`, 'Employer', w.name)}
         ${field(`work.${i}.startDate`, 'Start (YYYY-MM)', w.startDate)}${field(`work.${i}.endDate`, 'End (YYYY-MM, blank = present)', w.endDate)}
         ${field(`work.${i}.location`, 'Location', w.location)}
-        ${field(`work.${i}.highlights`, 'Bullet points (one per line)', (w.highlights || []).join('\n'), { area: true, rows: Math.max(3, (w.highlights || []).length + 1), wide: true, list: true })}</div></div>`).join('')}
+        ${field(`work.${i}.highlights`, 'Bullet points (one per line)', (w.highlights || []).join('\n'), { area: true, rows: Math.max(3, (w.highlights || []).length + 1), wide: true, list: true })}
+        <div class="bullet-hints wide" data-hints="${i}"></div></div></div>`).join('')}
       <button type="button" class="add" data-add="work">+ Add a role</button>
     </details>
     <details data-section="education"><summary>Education <small>${r.education.length}</small></summary>
@@ -143,6 +150,7 @@ function renderEditor() {
     <details data-section="languages"><summary>Languages</summary>
       ${field('_languages', 'Comma separated, e.g. "English (native), Spanish (C1)"', r.languages.map((l) => (l.fluency ? `${l.language} (${l.fluency})` : l.language)).join(', '), { area: true, rows: 2, wide: true })}
     </details>`;
+  guideUI?.applyFilter();
 }
 
 function setPath(obj, path, value) {
@@ -308,6 +316,45 @@ function confirmReset() {
   return false;
 }
 
+// ---------- coaching ----------
+const HAS_NUMBER = /(\d|%|\$|€|£|\bpercent\b|\bmillion\b|\bthousand\b|\bdoubled\b|\btripled\b|\bhalved\b)/i;
+const WEAK_START = /^(responsible for|duties included|worked on|helped( to)?|assisted with|tasked with|involved in|in charge of|participated in)\b/i;
+// Under each job: which bullets to improve and how. Updated as you type.
+function updateBulletHints() {
+  (state.resume?.work || []).forEach((w, i) => {
+    const box = document.querySelector(`[data-hints="${i}"]`);
+    if (!box) return;
+    const tips = (w.highlights || []).map((h, j) => {
+      const t = [];
+      const first = h.trim().split(/\s+/)[0];
+      if (WEAK_START.test(h)) t.push('say what you did and what changed, not "responsible for"');
+      else if (!isActionVerb(first)) t.push('start with a verb (Led, Built, Cut, Grew)');
+      if (!HAS_NUMBER.test(h)) t.push('add a number: $, %, time saved, people, volume');
+      const n = h.split(/\s+/).length;
+      if (n > 32) t.push(`shorten it (${n} words; aim for under 30)`);
+      if (/\b(i|my|we|our)\b/i.test(h)) t.push('drop "I", "my", "we"');
+      return t.length ? `<li><b>Bullet ${j + 1}:</b> ${t.join('; ')}</li>` : '';
+    }).filter(Boolean);
+    const count = (w.highlights || []).length;
+    if (count < 2) tips.unshift(`<li><b>This job:</b> add ${count ? 'at least one more bullet' : '2–4 bullets'} about what you achieved.</li>`);
+    box.innerHTML = tips.length ? `<p>Ways to strengthen this job:</p><ul>${tips.slice(0, 5).join('')}</ul>` : '<p class="ok">✓ These bullets are strong.</p>';
+  });
+}
+
+function updateScorePill(n) {
+  const pill = $('#score-pill');
+  pill.hidden = !state.resume;
+  $('#score-pill-n').textContent = n;
+  pill.dataset.band = n >= 80 ? 'good' : n >= 60 ? 'ok' : 'low';
+}
+
+function setStep(step) {
+  state.step = step;
+  if (state.mode !== 'guided') state.mode = 'guided';
+  save(); refresh();
+  if (step === 'design') renderThumbs();
+}
+
 // ---------- guided fixes ----------
 // Each fix jumps to the field that resolves it. Nothing is filled in for the user: facts only come from them.
 const CONTACT_FIX = { name: 'basics.name', email: 'basics.email', phone: 'basics.phone', location: 'basics.location.city', 'profile-link': 'basics._links', 'contact-in-body': 'basics.email' };
@@ -328,6 +375,10 @@ function focusField(section, path) {
 }
 function goFix(id) {
   const r = state.resume;
+  if (state.mode === 'guided' && guideUI) {
+    const target = guideUI.stepFor(id);
+    if (target && target !== state.step) { state.step = target; save(); refresh(); }
+  }
   const work = r.work || [];
   if (id === 'layout') return setTemplate('classic');
   if (CONTACT_FIX[id]) return focusField('contact', CONTACT_FIX[id]);
@@ -382,6 +433,7 @@ function renderThumbs() {
   clearTimeout(galleryTimer);
   galleryTimer = setTimeout(() => {
     if (!state.resume || !$('#gallery-panel').open) return;
+    if (state.mode === 'guided' && state.step !== 'design') return; // gallery is hidden on other steps
     document.querySelectorAll('#gallery iframe[data-thumb]').forEach((f) => {
       f.srcdoc = renderResumeHTML(state.resume, { template: f.dataset.thumb, locale: state.locale, design: { ...state.design, accent: '', font: '' } });
     });
@@ -439,6 +491,7 @@ function showTab(name) {
 }
 
 let jobsUI = null;
+let guideUI = null;
 init();
 jobsUI = initJobs({
   getResume: () => state.resume,
@@ -448,6 +501,13 @@ jobsUI = initJobs({
   download,
   showTab,
 });
+guideUI = initGuide({
+  getState: () => state, setStep, goFix, fixLabel,
+  exportPDF: () => exportPDF(), exportHTML: () => exportHTML(), exportJSON: () => exportJSON(), showTab,
+});
+document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => { state.mode = b.dataset.mode; save(); refresh(); if (state.mode === 'full') renderThumbs(); }));
+$('#score-pill').addEventListener('click', (e) => { e.preventDefault(); showTab('resume'); if (state.mode === 'guided') setStep('overview'); });
+if (state.resume) refresh();
 document.querySelectorAll('nav.tabs button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
 window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
 showTab(location.hash.slice(1) || 'resume');

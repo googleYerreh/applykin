@@ -4,6 +4,7 @@
 
 Free, open-source job-search tools. No account, no paywall, and your data stays on your own device.
 
+- **Step by step:** after upload, six short guided steps (contact, summary, experience, education & skills, design, download), each with its own fixes, per-bullet hints, and Back/Next. "Edit everything" shows the full editor.
 - **Design:** a gallery of 8 designs, each rated for ATS safety (Best, Good, or Email & networking), plus, accent colours, fonts, and sliders for text size, line spacing, section spacing and margins.
 - **Phase 1 – Resume:** import a PDF/Word resume, score it with an open rubric, fix it, export an ATS-friendly PDF.
 - **Phase 2 – Jobs:** a free job feed from public company job boards, match scores that explain themselves, resume tailoring that never invents anything, cover-letter drafts, and an application tracker. AI is optional: a free local model (Ollama) or your own API key.
