@@ -197,3 +197,38 @@ main { padding: ${(m.v * 1.1).toFixed(1)}mm ${m.h.toFixed(1)}mm; }` : ''}
 ${T.sidebar ? `${sidebarHtml}<main>${header}${mainSections}</main>` : `${header}${mainSections}`}
 </div></body></html>`;
 }
+
+/**
+ * A cover letter in the same look as the resume: same font, accent colour and contact header.
+ * @param {object} resume JSON Resume (for name and contact details)
+ * @param {string} text the letter
+ * @param {{template?:string, locale?:string, design?:object, company?:string, title?:string}} opts
+ */
+export function renderLetterHTML(resume, text, opts = {}) {
+  const locale = LOCALES[opts.locale] ? opts.locale : 'us';
+  const L = LOCALES[locale];
+  const T = TEMPLATES[opts.template] || TEMPLATES.classic;
+  const d = { ...DEFAULT_DESIGN, ...(opts.design || {}) };
+  const accent = isHex(d.accent) ? d.accent : T.accent;
+  const font = FONTS[d.font] || FONTS[T.font];
+  const b = resume.basics || {};
+  const contact = [[b.location?.city, b.location?.region].filter(Boolean).join(', '), b.email, b.phone, b.url, ...(b.profiles || []).map((p) => p.url)]
+    .filter(Boolean).map((x) => esc(String(x).replace(/^https?:\/\//, ''))).join(' · ');
+  const today = new Date().toLocaleDateString(locale === 'us' ? 'en-US' : locale === 'uk' ? 'en-GB' : locale === 'fr' ? 'fr-FR' : 'de-DE', { year: 'numeric', month: 'long', day: 'numeric' });
+  const paras = String(text || '').split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('');
+  const fontLink = font.google ? `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${font.google}&display=swap">` : '';
+  return `<!DOCTYPE html><html lang="${locale === 'us' || locale === 'uk' ? 'en' : locale === 'ch' ? 'de' : locale}"><head><meta charset="utf-8"><title>${esc(opts.title || `${b.name || ''} cover letter`)}</title>${fontLink}
+<style>
+@page { size: ${L.page}; margin: 20mm 22mm; }
+body { font-family: ${font.css}; font-size: 11pt; line-height: 1.5; color: #111; margin: 0; }
+.page { max-width: ${L.page === 'A4' ? '210mm' : '8.5in'}; margin: 0 auto; padding: 20mm 22mm; background: #fff; }
+@media print { .page { padding: 0; max-width: none; } }
+header { border-bottom: 2px solid ${accent}; padding-bottom: 8pt; margin-bottom: 18pt; }
+h1 { margin: 0; color: ${accent}; font-size: 20pt; } .contact { font-size: 9.5pt; color: #333; margin-top: 3pt; }
+.meta { margin-bottom: 14pt; color: #333; } p { margin: 0 0 10pt; }
+</style></head><body><div class="page">
+<header><h1>${esc(b.name)}</h1>${b.label ? `<div>${esc(b.label)}</div>` : ''}<div class="contact">${contact}</div></header>
+<div class="meta">${esc(today)}${opts.company ? `<br>${esc(opts.company)}` : ''}${opts.jobTitle ? `<br>Re: ${esc(opts.jobTitle)}` : ''}</div>
+${paras}
+</div></body></html>`;
+}

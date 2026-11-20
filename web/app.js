@@ -2,7 +2,7 @@
 import * as pdfjs from 'pdfjs-dist/build/pdf.mjs';
 import workerSource from 'pdfjs-dist/build/pdf.worker.min.mjs';
 import mammoth from 'mammoth/mammoth.browser.min.js';
-import { parseResume, scoreResume, renderResumeHTML, extractPdfText, extractDocxText, detectKind, RUBRIC, CATEGORIES, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN, ATS_LEVELS, PARSER_VERSION, isActionVerb } from '../core/index.js';
+import { parseResume, scoreResume, renderResumeHTML, renderLetterHTML, extractPdfText, extractDocxText, detectKind, RUBRIC, CATEGORIES, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN, ATS_LEVELS, PARSER_VERSION, isActionVerb, EVIDENCE_LEVELS, EVIDENCE_SOURCES } from '../core/index.js';
 import { SAMPLES } from './samples.js';
 import { initJobs } from './jobs-ui.js';
 import { initGuide } from './guide.js';
@@ -81,20 +81,31 @@ function scheduleRefresh() { clearTimeout(refreshTimer); refreshTimer = setTimeo
 function refresh() {
   const r = state.resume;
   const s = scoreResume(r, { template: state.template });
-  $('#overall').textContent = s.overall;
-  $('#overall-ring').style.setProperty('--p', s.overall);
-  $('#overall-ring').dataset.band = s.overall >= 80 ? 'good' : s.overall >= 60 ? 'ok' : 'low';
-  $('#verdict').textContent = s.overall >= 85 ? 'Strong. Polish the last details.' : s.overall >= 70 ? 'Good base. A few fixes will lift it.' : s.overall >= 50 ? 'Needs work. Start with the top fixes.' : 'Big gains available. Start at the top of the list.';
-  $('#cats').innerHTML = Object.entries(s.categories).map(([k, c]) => `
-    <div class="cat"><div class="cat-row"><span>${esc(c.label)}</span><b>${c.score}</b></div><div class="bar"><i style="width:${c.score}%" data-band="${c.score >= 80 ? 'good' : c.score >= 60 ? 'ok' : 'low'}"></i></div></div>`).join('');
+  const band = (n) => (n >= 80 ? 'good' : n >= 60 ? 'ok' : 'low');
+  $('#overall').textContent = s.quality;
+  $('#overall-ring').style.setProperty('--p', s.quality);
+  $('#overall-ring').dataset.band = band(s.quality);
+  $('#ats-score').textContent = s.ats;
+  $('#ats-ring').style.setProperty('--p', s.ats);
+  $('#ats-ring').dataset.band = band(s.ats);
+  $('#verdict').textContent = s.ats < 80 ? 'Fix readability first: tracking systems may miss parts of this file.'
+    : s.quality >= 90 ? 'Strong. Polish the last details.' : s.quality >= 70 ? 'Good base. A few fixes will lift it.' : 'Big gains available. Start with step 1.';
+  $('#cats').innerHTML = Object.entries(s.categories).filter(([k]) => k !== 'ats').map(([k, c]) => `
+    <div class="cat"><div class="cat-row"><span>${esc(c.label)}</span><b>${c.score}</b></div><div class="bar"><i style="width:${c.score}%" data-band="${band(c.score)}"></i></div></div>`).join('');
+  const gainLabel = (f) => `+${f.gain} ${f.score === 'ats' ? 'ATS' : 'quality'}`;
   $('#fixes').innerHTML = s.fixes.length
-    ? s.fixes.map((f) => `<li><div class="fix-head"><b>${esc(f.title)}</b><span class="gain">+${f.gain} pts</span></div><div class="fix-detail">${esc(f.detail)}</div><div class="fix-do">${esc(f.fix)}</div>${fixLabel(f.id) ? `<button type="button" class="fix-btn" data-fix="${esc(f.id)}">${fixLabel(f.id)}</button>` : ''}</li>`).join('')
+    ? s.fixes.map((f) => `<li><div class="fix-head"><b>${esc(f.title)}</b><span class="gain">${gainLabel(f)}</span></div><div class="fix-detail">${esc(f.detail)}</div><div class="fix-do">${esc(f.fix)}</div>${fixLabel(f.id) ? `<button type="button" class="fix-btn" data-fix="${esc(f.id)}">${fixLabel(f.id)}</button>` : ''}</li>`).join('')
     : '<li class="none">No fixes left. Nice work.</li>';
-  $('#rubric').innerHTML = Object.entries(CATEGORIES).map(([k, c]) => `
-    <h4>${esc(c.label)} <small>${Math.round(c.weight * 100)}% of total</small></h4>
-    <ul>${s.checks.filter((x) => x.category === k).map((x) => `<li data-state="${x.score === null ? 'na' : x.score >= 1 ? 'pass' : x.score > 0 ? 'part' : 'fail'}"><span class="dot"></span><span><b>${esc(x.title)}</b> <small>weight ${x.weight}</small><br>${esc(x.detail)}</span></li>`).join('')}</ul>`).join('');
+  $('#rubric').innerHTML = `
+    <p class="rubric-intro">There is no official or proven "resume score". These checks come from how tracking software reads files and from research on how recruiters skim resumes. The weights are our judgment; they have not been tested against hiring results. Each rule says how strong its support is.</p>
+    ${Object.entries(EVIDENCE_LEVELS).map(([k, e]) => `<p><span class="ev" data-ev="${k}">${esc(e.label)}</span> ${esc(e.note)}</p>`).join('')}` +
+    Object.entries(CATEGORIES).map(([k, c]) => `
+    <h4>${esc(c.label)} <small>${c.score === 'ats' ? 'ATS readability score' : `${Math.round(c.weight * 100)}% of resume quality`}</small></h4>
+    <ul>${s.checks.filter((x) => x.category === k).map((x) => `<li data-state="${x.score === null ? 'na' : x.score >= 1 ? 'pass' : x.score > 0 ? 'part' : 'fail'}"><span class="dot"></span><span><b>${esc(x.title)}</b><span class="ev" data-ev="${x.evidence}">${esc(EVIDENCE_LEVELS[x.evidence].label)}</span><br><span class="rubric-why">${esc(x.why)}</span><br><small>${esc(x.detail)}</small></span></li>`).join('')}</ul>`).join('') +
+    `<h4>Sources</h4><ol class="sources">${Object.values(EVIDENCE_SOURCES).map((src) => `<li><a href="${src.url}" target="_blank" rel="noopener">${esc(src.label)}</a></li>`).join('')}</ol>`;
+  renderReadout(r);
   guideUI?.render(s);
-  updateScorePill(s.overall);
+  updateScorePill(s.quality, s.ats);
   updateBulletHints();
   const html = renderResumeHTML(r, renderOpts());
   const frame = $('#preview');
@@ -316,6 +327,28 @@ function confirmReset() {
   return false;
 }
 
+// ---------- what a tracking system reads ----------
+function renderReadout(r) {
+  const b = r.basics || {};
+  const row = (okk, k, v, sub = '') => `<li><span class="${okk ? 'y' : 'n'}">${okk ? '✓' : '✗'}</span><span class="k">${esc(k)}</span><span>${v ? esc(v) : '<i>not found</i>'}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</li>`;
+  const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ');
+  const links = [b.url, ...(b.profiles || []).map((p) => p.url)].filter(Boolean);
+  const work = r.work || [];
+  const skills = (r.skills || []).reduce((a, g) => a + (g.keywords?.length || 0), 0);
+  const headings = r.meta?.applykin?.headings || [];
+  $('#readout').innerHTML = `<ul>
+    ${row(!!b.name, 'Name', b.name)}
+    ${row(!!b.email, 'Email', b.email)}
+    ${row(!!b.phone, 'Phone', b.phone)}
+    ${row(!!loc, 'Location', loc)}
+    ${row(links.length > 0, 'Links', links.join(', '))}
+    ${row(work.length > 0, 'Jobs', work.length ? `${work.length} found` : '', work.slice(0, 8).map((w) => esc(`${w.position || '?'} — ${w.name || '?'} (${[w.startDate, w.endDate || (w.startDate ? 'now' : '')].filter(Boolean).join(' to ') || 'no dates'})`)).join('<br>'))}
+    ${row((r.education || []).length > 0, 'Education', (r.education || []).length ? `${r.education.length} found` : '', (r.education || []).map((e) => esc([e.studyType, e.area, e.institution].filter(Boolean).join(', '))).join('<br>'))}
+    ${row(skills > 0, 'Skills', skills ? `${skills} skills` : '')}
+    ${row(headings.length > 0, 'Headings', headings.join(' · '))}
+  </ul><p class="score-note">This is what Applykin read from your file. Tracking systems use similar methods, so anything marked ✗ may be missed by them too.</p>`;
+}
+
 // ---------- coaching ----------
 const HAS_NUMBER = /(\d|%|\$|€|£|\bpercent\b|\bmillion\b|\bthousand\b|\bdoubled\b|\btripled\b|\bhalved\b)/i;
 const WEAK_START = /^(responsible for|duties included|worked on|helped( to)?|assisted with|tasked with|involved in|in charge of|participated in)\b/i;
@@ -341,10 +374,11 @@ function updateBulletHints() {
   });
 }
 
-function updateScorePill(n) {
+function updateScorePill(n, ats) {
   const pill = $('#score-pill');
   pill.hidden = !state.resume;
   $('#score-pill-n').textContent = n;
+  $('#score-pill-ats').textContent = ats;
   pill.dataset.band = n >= 80 ? 'good' : n >= 60 ? 'ok' : 'low';
 }
 
@@ -493,7 +527,22 @@ function showTab(name) {
 let jobsUI = null;
 let guideUI = null;
 init();
+// Print any generated page (tailored resume, cover letter) to PDF; hosted pages save the HTML instead.
+function printHTML(html, filename) {
+  if (hostDownloads) return download(filename, html, 'text/html');
+  const f = document.createElement('iframe');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(f);
+  f.onload = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch { download(filename, html, 'text/html'); } setTimeout(() => f.remove(), 60000); };
+  f.srcdoc = html;
+}
 jobsUI = initJobs({
+  scoreOf: (r) => scoreResume(r, { template: state.template }),
+  renderHTML: (r, title) => renderResumeHTML(title ? { ...r, basics: { ...r.basics } } : r, renderOpts()).replace(/<title>.*?<\/title>/, title ? `<title>${esc(title)}</title>` : '$&'),
+  renderLetter: (r, text, job, title) => renderLetterHTML(r, text, { ...renderOpts(), company: job.company, jobTitle: job.title, title }),
+  printHTML,
+  getTemplate: () => state.template,
+  atsLevel: () => TEMPLATES[state.template]?.ats || 'best',
   getResume: () => state.resume,
   setResume: (r) => { state.resume = r; save(); renderEditor(); refresh(); },
   getLocale: () => state.locale,

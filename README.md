@@ -96,9 +96,19 @@ test/        node:test suite
 
 Data format: [JSON Resume](https://jsonresume.org/schema), so exports work with other tools.
 
+## Applying
+
+Applykin does not submit applications for you: the job boards' application APIs need each employer's private key, and bots on employer sites run into CAPTCHAs and site rules. Instead, **Apply with Applykin** prepares everything for one job:
+
+1. **Tailor:** a copy of your resume for that job. It puts the most relevant bullets and skills first, uses the ad's spelling for skills you already list, can leave out unrelated bullets from older jobs, and can use the job title as your headline only if you tick that it is accurate. Every change is listed. Nothing is invented.
+2. **Cover letter:** drafted from your resume's facts (optional AI polish with your own model or key), saved as a PDF in the same design as your resume.
+3. **Apply:** download both PDFs, open the employer's form, copy your saved answers, then mark it applied. The tracker keeps the exact version you sent.
+
+**Your results** (Tracker tab) shows how many applications led to an interview or offer, split by tailored vs main resume, design and score. It stays on your device.
+
 ## Scoring
 
-Scores are rule-based and fully explained. Run `node bin/applykin.js rubric` or open "How the score works" in the app. Category weights: Completeness 25%, Structure 25%, Clarity 30%, ATS readiness 20%. Each fix shows how many points it adds. There's no percentile ranking: we won't claim one without real, opt-in data.
+There are **two separate scores**: *Resume quality* (completeness 40%, structure 35%, clarity 25%) and *ATS readability* (can tracking systems read the file). There is no official or proven resume score; ours is a transparent checklist. Every rule shows its evidence level (strong, some, or common advice) and sources (Ladders eye-tracking study, Enhancv recruiter interviews, parsing guidance). The weights are judgment, not fitted to hiring outcomes. Scores are rule-based and fully explained. Run `node bin/applykin.js rubric` or open "How the score works" in the app. Category weights: Completeness 25%, Structure 25%, Clarity 30%, ATS readiness 20%. Each fix shows how many points it adds. There's no percentile ranking: we won't claim one without real, opt-in data.
 
 ## Privacy
 

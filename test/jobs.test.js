@@ -89,3 +89,19 @@ test('AI providers build the right requests', async () => {
   assert.equal(calls[2].init.headers['x-api-key'], 'k');
   await assert.rejects(generate({ provider: 'openai' }, { system: '', prompt: '' }, fake), /API key/);
 });
+
+test('tailoring per job: spelling, trim, headline are opt-in and never add facts', async () => {
+  const { tailorResume } = await import('../core/index.js');
+  const r = sample('german');
+  r.skills[0].keywords = r.skills[0].keywords.map((k) => (k === 'PostgreSQL' ? 'Postgres' : k));
+  const job = { title: 'Senior Backend Engineer (Kotlin)', company: 'X', description: 'We use Kotlin, Java, Spring Boot and PostgreSQL on Kubernetes.' };
+  const t = tailorResume(r, job);
+  assert.ok(t.tailoredResume.skills[0].keywords.includes('PostgreSQL'), 'uses the ad spelling');
+  assert.ok(t.changes.some((c) => c.kind === 'spelling'));
+  assert.equal(t.tailoredResume.basics.label, r.basics.label, 'headline unchanged unless asked');
+  assert.equal(t.headlineOption, 'Senior Backend Engineer');
+  const t2 = tailorResume(r, job, { headline: true });
+  assert.equal(t2.tailoredResume.basics.label, 'Senior Backend Engineer');
+  const all = (x) => new Set(x.work.flatMap((w) => w.highlights));
+  for (const h of all(t2.tailoredResume)) assert.ok(all(r).has(h), 'no new bullets');
+});

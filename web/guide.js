@@ -62,7 +62,7 @@ export function initGuide(ctx) {
     if (open.some((f) => f.id === 'email' || f.id === 'phone')) open = open.filter((f) => f.id !== 'contact-in-body');
     const prev = STEPS[i - 1], next = STEPS[i + 1];
     const issues = open.length
-      ? `<ul class="step-issues">${open.map((f) => `<li><b>${esc(f.title)}</b> <span class="gain">+${f.gain} pts</span><br><span>${esc(f.fix)}</span>${ctx.fixLabel(f.id) ? ` <button type="button" class="fix-btn" data-fix="${esc(f.id)}">${esc(ctx.fixLabel(f.id))}</button>` : ''}</li>`).join('')}</ul>`
+      ? `<ul class="step-issues">${open.map((f) => `<li><b>${esc(f.title)}</b> <span class="gain">+${f.gain} ${f.score === 'ats' ? 'ATS' : 'quality'}</span><br><span>${esc(f.fix)}</span>${ctx.fixLabel(f.id) ? ` <button type="button" class="fix-btn" data-fix="${esc(f.id)}">${esc(ctx.fixLabel(f.id))}</button>` : ''}</li>`).join('')}</ul>`
       : step.id === 'finish' ? '' : '<p class="step-ok">✓ Nothing to fix here. Check the details, then go to the next step.</p>';
     const finish = step.id === 'finish' ? `
       <div class="finish">

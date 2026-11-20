@@ -94,7 +94,17 @@ test('every design renders, and two-column designs cost ATS points', async () =>
   const r = parseResume(txt('strong'));
   for (const t of Object.keys(TEMPLATES)) assert.match(renderResumeHTML(r, { template: t }), /Maria Gonzalez/);
   const best = scoreResume(r, { template: 'classic' }), side = scoreResume(r, { template: 'sidebar' });
-  assert.ok(best.overall > side.overall);
+  assert.ok(best.ats > side.ats, 'two-column design lowers ATS readability');
+  assert.equal(best.quality, side.quality, 'design does not change resume quality');
   assert.ok(side.fixes.some((f) => f.id === 'layout'));
   assert.equal(scoreResume(r).checks.find((c) => c.id === 'layout').score, null, 'no design given: not applicable');
+});
+
+test('two separate scores with evidence for every rule; letter PDF uses the resume design', async () => {
+  const C = await import('../core/index.js');
+  const s = scoreResume(parseResume(txt('strong')), { template: 'classic' });
+  assert.ok(Number.isInteger(s.quality) && Number.isInteger(s.ats));
+  for (const c of s.checks) assert.ok(C.EVIDENCE_LEVELS[c.evidence] && c.why, `evidence for ${c.id}`);
+  const html = C.renderLetterHTML(parseResume(txt('strong')), 'Dear team,\n\nHello <b>there</b>.', { template: 'modern', company: 'Acme' });
+  assert.match(html, /Maria Gonzalez/); assert.match(html, /#0b5cad/); assert.ok(!html.includes('<b>there'));
 });

@@ -1,6 +1,6 @@
 export { parseResume, normalizeDate, findDateRange, PARSER_VERSION } from './parse.js';
-export { scoreResume, RUBRIC, CATEGORIES, isActionVerb } from './score.js';
-export { renderResumeHTML, formatDate, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN, ATS_LEVELS } from './render.js';
+export { scoreResume, RUBRIC, CATEGORIES, isActionVerb, EVIDENCE_LEVELS, EVIDENCE_SOURCES, RULE_EVIDENCE } from './score.js';
+export { renderResumeHTML, renderLetterHTML, formatDate, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN, ATS_LEVELS } from './render.js';
 export { extractPdfText, extractDocxText, detectKind } from './extract.js';
 export { SOURCES, fetchSource, fetchBoards, dedupeJobs, finalizeJob, htmlToText, decodeEntities } from './jobs.js';
 export { rankJobs, matchJob, extractSkills, resumeProfile, buildIndex, SKILL_VOCAB } from './match.js';

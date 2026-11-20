@@ -204,7 +204,7 @@ a.btn { text-decoration: none; display: inline-block; }
 .mode-switch button { border: 0; background: none; padding: 8px 16px; border-radius: 999px; cursor: pointer; font-weight: 600; color: var(--muted); }
 .mode-switch button[aria-pressed=true] { background: var(--ink); color: #fff; }
 #workspace.guided .full-only, #workspace.full .guided-only { display: none !important; }
-#workspace.guided:not([data-step=overview]) #score-panel { display: none; }
+#workspace.guided:not([data-step=overview]) #score-panel, #workspace.guided:not([data-step=overview]) #readout-panel, #workspace.guided:not([data-step=overview]) #how-panel { display: none; }
 #guide-nav .step-nav { margin-top: 0; border-top: 0; padding-top: 0; }
 #workspace.guided:not([data-step=design]) #gallery-panel, #workspace.guided:not([data-step=design]) #design { display: none; }
 #workspace.guided #editor details > summary { display: none; } #workspace.guided #editor details { border-top: 0; padding-top: 0; }
@@ -239,6 +239,44 @@ a.btn { text-decoration: none; display: inline-block; }
 .how-it-works b { display: block; color: var(--ink); font-size: 14px; margin-bottom: 2px; }
 @media (max-width: 760px) { .how-it-works { grid-template-columns: 1fr 1fr; } #score-pill small { display: none; } }
 
+
+.two-scores { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center; }
+.score-col { display: flex; flex-direction: column; align-items: center; gap: 2px; } .score-col small { color: var(--muted); font-size: 12px; } .score-col b { margin-top: 6px; font-size: 14px; }
+.ring { --p: 0; width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--c) calc(var(--p) * 1%), #eceae4 0); --c: var(--low); }
+.ring[data-band=ok] { --c: var(--ok); } .ring[data-band=good] { --c: var(--good); }
+#ats-score { font-size: 30px; font-weight: 750; line-height: 1; }
+#verdict { text-align: center; font-weight: 600; margin: 12px 0 4px; }
+.score-note { font-size: 12.5px; color: var(--muted); margin: 12px 0 0; }
+.readout summary, .how summary { cursor: pointer; font-weight: 650; }
+.readout ul { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.readout li { display: grid; grid-template-columns: 22px 120px 1fr; gap: 6px; align-items: start; } .readout .k { color: var(--muted); }
+.readout .y { color: var(--good); font-weight: 700; } .readout .n { color: var(--low); font-weight: 700; }
+.readout .sub { grid-column: 3; color: var(--muted); font-size: 12.5px; }
+.ev { display: inline-block; font-size: 11px; font-weight: 650; padding: 1px 7px; border-radius: 999px; margin-left: 4px; vertical-align: 1px; }
+.ev[data-ev=strong] { background: #e3f3ea; color: #1d6b45; } .ev[data-ev=moderate] { background: #fbf1dc; color: #8a5a00; } .ev[data-ev=advice] { background: #eceae4; color: #4b4f57; }
+.rubric-intro { font-size: 13.5px; color: #3d4247; } .rubric-why { color: #3d4247; } .sources { font-size: 12.5px; padding-left: 18px; } .sources a { color: var(--accent); }
+#score-pill small b { color: var(--accent); }
+
+
+.apply-head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.apply-steps { list-style: none; display: flex; gap: 6px; padding: 0; margin: 0; flex-wrap: wrap; }
+.apply-steps button { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 12px 5px 5px; cursor: pointer; font: inherit; font-size: 13px; color: var(--muted); }
+.apply-steps span { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #eceae4; font-size: 12px; font-weight: 700; color: var(--muted); }
+.apply-steps .current button { border-color: var(--ink); color: var(--ink); font-weight: 650; } .apply-steps .current span { background: var(--ink); color: #fff; }
+.apply-steps .done span { background: var(--good); color: #fff; }
+.apply-body h3 { text-transform: none; letter-spacing: 0; color: var(--ink); font-size: 18px; margin: 4px 0 6px; }
+.opts { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; } .opts .check { align-items: flex-start; font-size: 14px; } .opts input { margin-top: 3px; }
+.changes { padding-left: 18px; font-size: 14px; margin: 4px 0 8px; } .changes li { margin: 3px 0; }
+.changes li[data-kind=trim] { color: #8a5a00; } .changes li[data-kind=headline] { color: var(--accent); }
+.mini-preview { position: relative; height: 360px; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #fff; margin-top: 10px; }
+.mini-preview iframe { width: 816px; height: 1056px; border: 0; transform: scale(.55); transform-origin: 0 0; }
+.send-list { padding-left: 20px; display: flex; flex-direction: column; gap: 14px; margin: 8px 0; } .send-list > li > small { color: var(--muted); display: block; margin-top: 4px; }
+.row-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.answers { list-style: none; padding: 0; margin: 6px 0; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; }
+.answers li { display: grid; grid-template-columns: 150px 1fr auto; gap: 8px; align-items: center; } .answers li span { color: var(--muted); } .answers li b { font-weight: 500; overflow-wrap: anywhere; }
+.card-sent { font-size: 11.5px; color: var(--good); margin-top: 4px; }
+.results { max-width: 760px; margin: 0 auto 16px; } .results-main { font-size: 16px; } .results-table { border-collapse: collapse; font-size: 14px; } .results-table td { padding: 4px 16px 4px 0; border-bottom: 1px solid var(--line); }
+
 @media (max-width: 900px) {
   #workspace { grid-template-columns: 1fr; }
   .right { position: static; }
@@ -261,7 +299,7 @@ a.btn { text-decoration: none; display: inline-block; }
     <button type="button" data-tab="settings">Settings</button>
   </nav>
   <div class="top-right">
-    <a id="score-pill" href="#resume" hidden title="Your resume score"><span id="score-pill-n">0</span><small>Resume score</small></a>
+    <a id="score-pill" href="#resume" hidden title="Resume quality and ATS readability"><span id="score-pill-n">0</span><small>Quality · ATS <b id="score-pill-ats">0</b></small></a>
     <button id="new" type="button" hidden>Start over</button>
   </div>
 </header>
@@ -305,17 +343,29 @@ a.btn { text-decoration: none; display: inline-block; }
       <div id="guide" class="panel guide guided-only"></div>
       <div id="reparse" class="note" hidden>We've improved how resumes are read since you uploaded this one. <button type="button" class="btn small" id="reparse-go">Re-read my resume</button><br><small>This re-reads your original file. Edits you made here will be replaced.</small></div>
       <div class="panel" id="score-panel">
-        <div class="score-head">
-          <div id="overall-ring"><div class="ring-inner"><div><div id="overall">0</div><small>of 100</small></div></div></div>
-          <div><p id="verdict"></p><p class="sub">Edit below and the score updates as you type.</p></div>
+        <div class="two-scores">
+          <div class="score-col">
+            <div id="overall-ring" class="ring"><div class="ring-inner"><div><div id="overall">0</div><small>of 100</small></div></div></div>
+            <b>Resume quality</b><small>Complete, clear, well-structured</small>
+          </div>
+          <div class="score-col">
+            <div id="ats-ring" class="ring"><div class="ring-inner"><div><div id="ats-score">0</div><small>of 100</small></div></div></div>
+            <b>ATS readability</b><small>Can tracking systems read it?</small>
+          </div>
         </div>
+        <p id="verdict"></p>
         <div id="cats"></div>
+        <p class="score-note">Two separate checks, kept apart on purpose. How well you fit a specific job is a third measure: see the match score on each job.</p>
       </div>
+      <details class="panel readout" id="readout-panel">
+        <summary>What a tracking system reads from your file</summary>
+        <div id="readout"></div>
+      </details>
       <div class="panel full-only">
         <h3>Top fixes</h3>
         <ol id="fixes"></ol>
-        <details class="how" style="margin-top:14px"><summary>How the score works</summary><div id="rubric"></div></details>
       </div>
+      <details class="panel how" id="how-panel"><summary>How the scores work, and how much to trust them</summary><div id="rubric"></div></details>
       <div class="panel" id="editor-panel"><h3 class="full-only">Edit your resume</h3><div id="editor"></div></div>
       <div id="guide-nav" class="guided-only"></div>
     </div>
@@ -391,11 +441,17 @@ arbeitnow:1</textarea></label>
 </div>
 
 <div data-panel="tracker" hidden>
+  <section id="results" class="panel results" hidden></section>
   <p id="tracker-empty" class="placeholder">Jobs you save show up here. Move them through the stages as you apply.</p>
   <div id="board"></div>
 </div>
 
 <div data-panel="settings" hidden>
+  <div class="panel settings">
+    <h3>Your application answers</h3>
+    <p>Saved once, then ready to copy into any application form. They stay in this browser.</p>
+    <div id="answers" class="grid"></div>
+  </div>
   <div class="panel settings" id="settings">
     <h3>AI writing help (optional)</h3>
     <p>Everything works without AI. Turn it on to polish cover letters. You choose where requests go: a free model on your own computer, or your own API key. Keys are stored only in this browser.</p>

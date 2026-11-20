@@ -196,11 +196,59 @@ export const RUBRIC = [
     } },
 ];
 
+// Two separate scores, never merged:
+//  - quality: a checklist of how complete, well-structured and clear the resume is
+//  - ats:     whether applicant tracking systems can read the file and find each section
+// Weights are our judgment, informed by the evidence in EVIDENCE below. They are not fitted to hiring outcomes.
 export const CATEGORIES = {
-  completeness: { label: 'Completeness', weight: 0.25 },
-  structure: { label: 'Structure', weight: 0.25 },
-  clarity: { label: 'Clarity', weight: 0.3 },
-  ats: { label: 'ATS readiness', weight: 0.2 },
+  completeness: { label: 'Completeness', weight: 0.40, score: 'quality' },
+  structure: { label: 'Structure', weight: 0.35, score: 'quality' },
+  clarity: { label: 'Clarity', weight: 0.25, score: 'quality' },
+  ats: { label: 'ATS readability', weight: 1, score: 'ats' },
+};
+
+// How strong the support is for each rule.
+export const EVIDENCE_LEVELS = {
+  strong: { label: 'Strong evidence', note: 'Follows from how tracking software reads files, or from what recruiters were measured looking at.' },
+  moderate: { label: 'Some evidence', note: 'Supported by research on how recruiters skim resumes, but not tested against hiring results.' },
+  advice: { label: 'Common advice', note: 'Widely recommended by recruiters and career coaches. Not proven to change interview rates.' },
+};
+
+export const EVIDENCE_SOURCES = {
+  ladders: { label: 'Ladders eye-tracking study, 2018 (recruiters spend about 7.4 seconds; look at name, titles, companies, dates, education; columns and clutter hurt)', url: 'https://www.hrdive.com/news/eye-tracking-study-shows-recruiters-look-at-resumes-for-7-seconds/541582/' },
+  enhancv: { label: 'Enhancv interviews with 25 U.S. recruiters, 2025 (92% say their ATS does not auto-reject on formatting or content)', url: 'https://enhancv.com/blog/does-ats-reject-resumes/' },
+  parsing: { label: 'Colorado State University career center: complex formatting, graphics and unusual fonts can stop an ATS from parsing a resume', url: 'https://bizcareers.colostate.edu/resources/what-is-an-applicant-tracking-system-ats/' },
+};
+
+// Per-rule evidence level, the reason in plain words, and supporting sources.
+export const RULE_EVIDENCE = {
+  name: ['strong', 'Recruiters look at your name first, and tracking systems file you under it.', ['ladders', 'parsing']],
+  email: ['strong', 'Without an email address, nobody can contact you.', ['parsing']],
+  phone: ['strong', 'Many recruiters call first; systems store the number as a contact field.', ['parsing']],
+  location: ['moderate', 'Recruiters and job filters often search by city or region.', []],
+  'profile-link': ['advice', 'A LinkedIn or portfolio link lets recruiters check your work quickly.', []],
+  summary: ['advice', 'A short summary frames the rest of the page.', []],
+  work: ['strong', 'Job titles and employers are what recruiters spend the most time reading.', ['ladders']],
+  education: ['strong', 'Education is one of the few sections recruiters were measured looking at in every review.', ['ladders']],
+  skills: ['moderate', 'Recruiters search their systems by keyword, and the skills list is where most keywords live.', ['ladders']],
+  dates: ['strong', 'Start and end dates are among the first things recruiters check.', ['ladders']],
+  order: ['moderate', 'Recruiters read top to bottom and expect your current role first.', ['ladders']],
+  titles: ['strong', 'Titles and companies are where recruiters look longest.', ['ladders']],
+  'bullets-per-role': ['advice', 'A few bullets per job is easy to skim; one is thin, ten is a wall.', []],
+  length: ['advice', 'One page early in a career, two later, is the usual expectation.', []],
+  headings: ['strong', 'Systems find sections by their headings; unusual headings get missed.', ['parsing', 'ladders']],
+  'action-verbs': ['advice', 'Starting with a verb makes bullets about what you did.', []],
+  'weak-openers': ['advice', '"Responsible for" describes a duty, not a result.', []],
+  numbers: ['advice', 'Numbers make results concrete and easy to compare.', []],
+  'bullet-length': ['moderate', 'Long sentences slowed recruiters down in eye-tracking tests.', ['ladders']],
+  'first-person': ['advice', 'Resumes are conventionally written without "I".', []],
+  cliches: ['advice', 'Phrases like "team player" say little without an example.', []],
+  'verb-variety': ['advice', 'Repeating the same verb makes bullets blur together.', []],
+  'text-layer': ['strong', 'Scanned or image-only PDFs have no text for a system to read.', ['parsing']],
+  'sections-found': ['strong', 'If a system cannot find your experience, education or skills, it cannot search them.', ['parsing']],
+  'contact-in-body': ['strong', 'Some systems skip page headers, footers and images.', ['parsing']],
+  layout: ['strong', 'Two-column layouts can be read out of order; recruiters also skimmed multi-column resumes less well.', ['parsing', 'ladders']],
+  'special-chars': ['moderate', 'Icon fonts and odd symbols can come through as garbage characters.', ['parsing']],
 };
 
 function ok(detail) { return { score: 1, detail }; }
@@ -210,31 +258,35 @@ function na() { return { score: null, detail: 'Not applicable.' }; }
 
 /**
  * Score a JSON Resume.
- * @returns {{ overall:number, categories:Record<string,{label,score}>, checks:Array, fixes:Array }}
+ * @param {object} resume
+ * @param {{template?:string}} opts the chosen design, used by the ATS layout check
+ * @returns {{ quality:number, ats:number, overall:number, categories:object, checks:Array, fixes:Array }}
  */
 export function scoreResume(resume, opts = {}) {
   const checks = RUBRIC.map((rule) => {
     let res;
     try { res = rule.check(resume, opts); } catch (e) { res = { score: null, detail: 'Check failed: ' + e.message }; }
-    return { id: rule.id, category: rule.category, title: rule.title, weight: rule.weight, ...res };
+    const [evidence, why, sources] = RULE_EVIDENCE[rule.id] || ['advice', '', []];
+    return { id: rule.id, category: rule.category, title: rule.title, weight: rule.weight, evidence, why, sources, ...res };
   });
   const categories = {};
   for (const [key, cat] of Object.entries(CATEGORIES)) {
     const cs = checks.filter((c) => c.category === key && c.score !== null);
     const w = cs.reduce((a, c) => a + c.weight, 0);
     const s = w ? cs.reduce((a, c) => a + c.score * c.weight, 0) / w : 0;
-    categories[key] = { label: cat.label, score: Math.round(s * 100) };
+    categories[key] = { label: cat.label, score: Math.round(s * 100), of: cat.score };
   }
-  const overall = Math.round(Object.entries(CATEGORIES).reduce((a, [k, c]) => a + categories[k].score * c.weight, 0));
-  // Fixes ranked by points they would add to the overall score.
+  const quality = Math.round(['completeness', 'structure', 'clarity'].reduce((a, k) => a + categories[k].score * CATEGORIES[k].weight, 0));
+  const ats = categories.ats.score;
+  // Fixes ranked by points they would add to the score they belong to.
   const fixes = checks
     .filter((c) => c.fix && c.score !== null && c.score < 1)
     .map((c) => {
       const catChecks = checks.filter((x) => x.category === c.category && x.score !== null);
       const catW = catChecks.reduce((a, x) => a + x.weight, 0);
       const gain = ((1 - c.score) * c.weight / catW) * CATEGORIES[c.category].weight * 100;
-      return { id: c.id, title: c.title, detail: c.detail, fix: c.fix, gain: Math.round(gain * 10) / 10 };
+      return { id: c.id, title: c.title, detail: c.detail, fix: c.fix, gain: Math.round(gain * 10) / 10, score: CATEGORIES[c.category].score, evidence: c.evidence };
     })
-    .sort((a, b) => b.gain - a.gain);
-  return { overall, categories, checks, fixes, rubricVersion: '0.1.0' };
+    .sort((a, b) => (b.score === 'ats') - (a.score === 'ats') || b.gain - a.gain);
+  return { quality, ats, overall: quality, categories, checks, fixes, rubricVersion: '0.2.0' };
 }
