@@ -129,3 +129,32 @@ test('Jobicy remote feed, job types and location tiers', async () => {
   assert.ok(C.tierRank('remote', 'remoteHome') < C.tierRank('remote', 'city'));
   assert.ok(C.tierRank('near', 'city') < C.tierRank('near', 'remoteHome'));
 });
+
+test('match: field words beat "Manager", wrapped skills rejoin, bands, cache-safe', async () => {
+  const { resumeSkillList, matchBand } = await import('../core/match.js');
+  const { rankJobs } = await import('../core/index.js');
+  const r = {
+    basics: { label: 'Operations Manager' },
+    work: [{ position: 'Owner & Operations Manager', name: 'Shop', highlights: ['Led vendor management and inventory management for an Amazon Seller Central store', 'Cut costs with process improvement and SOPs'] },
+           { position: 'General Manager', name: 'Hotel', highlights: ['Ran front desk and housekeeping teams'] }],
+    skills: [{ name: 'Skills', keywords: ['KPI &', 'Performance Management', 'Sales & Customer', 'Relationship Management', 'Vendor Management'] }],
+  };
+  const list = resumeSkillList(r);
+  assert.ok(list.includes('kpi & performance management') && list.includes('performance management'));
+  assert.ok(!list.includes('customer') && !list.includes('kpi &'), 'no lone generic words or dangling "&"');
+  const desc = 'Own vendor management, inventory management and process improvement. Build SOPs and KPIs.';
+  const jobs = [
+    { id: 'ops', title: 'Senior Operations Manager', company: 'A', description: desc },
+    { id: 'pmm', title: 'Product Marketing Manager - General (All Levels)', company: 'B', description: 'Launch campaigns, positioning, messaging, product marketing.' },
+    { id: 'sales', title: 'Sales Manager, Iberia - Digital Natives', company: 'C', description: 'Close enterprise deals, quota, pipeline.' },
+  ];
+  const ranked = rankJobs(r, jobs);
+  const by = Object.fromEntries(ranked.map((x) => [x.job.id, x.match]));
+  assert.equal(ranked[0].job.id, 'ops');
+  assert.ok(by.ops.score >= 75, `a clear fit reads as strong (${by.ops.score})`);
+  assert.equal(by.ops.band.id, 'strong');
+  assert.ok(by.pmm.parts.title < 50 && by.sales.parts.title < 50, '"Manager" alone is not a title match');
+  // Same answer on a second, cached run.
+  assert.deepEqual(rankJobs(r, jobs).map((x) => x.match.score), ranked.map((x) => x.match.score));
+  assert.equal(matchBand(59).label, 'Worth a look');
+});

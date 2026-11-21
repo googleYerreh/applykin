@@ -129,7 +129,15 @@ nav.tabs button[aria-current=page] { background: var(--accent-soft); color: var(
 .job-score { flex: none; width: 52px; height: 52px; border-radius: 10px; display: grid; place-items: center; text-align: center; font-weight: 750; font-size: 18px; line-height: 1; background: #fbe9e5; color: var(--low); }
 .job-score small { display: block; font-size: 10px; font-weight: 500; }
 .job-score[data-band=none] { background: #eceae4; color: var(--muted); }
-.job-score[data-band=ok] { background: #fbf1dc; color: #9a6a06; } .job-score[data-band=good] { background: var(--accent-soft); color: var(--good); }
+.job-score[data-band=fair] { background: #fbf1dc; color: #9a6a06; } .job-score[data-band=good], .job-score[data-band=strong] { background: var(--accent-soft); color: var(--good); }
+.job-score { width: 58px; } .job-score small { font-size: 9px; margin-top: 2px; }
+.match-break { border: 1px solid var(--line, #e4e1d9); border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+.match-break h3 { margin: 0 0 8px; display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.mb-score { font-weight: 750; font-size: 20px; color: var(--good); } .match-break[data-band=fair] .mb-score { color: #9a6a06; } .match-break[data-band=low] .mb-score { color: var(--low); }
+.mb-row { display: grid; grid-template-columns: 74px 1fr 30px; gap: 4px 8px; align-items: center; font-size: 13px; margin: 6px 0; }
+.mb-row i { height: 8px; background: #eceae4; border-radius: 4px; overflow: hidden; } .mb-row b { display: block; height: 100%; background: var(--accent, #2f6f5e); }
+.mb-row em { font-style: normal; text-align: right; font-weight: 600; } .mb-row small { grid-column: 2 / 4; color: var(--muted); font-size: 11.5px; }
+.mb-note { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
 .job-title { font-weight: 650; } .job-meta { font-size: 13px; color: #3d4247; }
 .job-why { font-size: 12.5px; color: var(--muted); margin-top: 3px; } .job-src { font-size: 12px; color: var(--muted); margin-top: 3px; }
 #job-detail { position: sticky; top: 74px; max-height: calc(100vh - 96px); overflow: auto; }

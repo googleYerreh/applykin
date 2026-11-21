@@ -2,7 +2,7 @@
 import { rankJobs, tailorResume, templateLetter, letterPrompt, generate, PROVIDERS, fetchBoards, dedupeJobs,
   STAGES, STAGE_LABELS, trackJob, moveApplication, updateApplication, removeApplication } from '../core/index.js';
 import { SAMPLE_JOBS } from './sample-jobs.js';
-import { userPlace, proximity, tierRank, countryFromTimeZone, COUNTRIES, JOB_TYPE_LABELS, jobTypeOf } from '../core/index.js';
+import { userPlace, proximity, tierRank, countryFromTimeZone, COUNTRIES, JOB_TYPE_LABELS, jobTypeOf, matchBand } from '../core/index.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -100,18 +100,31 @@ export function initJobs(ctx) {
       </div>`;
   }
 
+  function breakdown(m) {
+    const bar = (label, v, hint) => `<div class="mb-row"><span>${label}</span><i><b style="width:${v}%"></b></i><em>${v}</em><small>${hint}</small></div>`;
+    return `<section class="match-break" data-band="${m.band.id}">
+      <h3><span class="mb-score">${m.score}</span> ${esc(m.band.label)}</h3>
+      ${bar('Skills', m.parts.skills, '45% of the score: skills the ad names that your resume has')}
+      ${bar('Job title', m.parts.title, '35%: how close the role is to titles you have held')}
+      ${bar('Wording', m.parts.text, '20%: how much of the ad\'s language your resume shares')}
+      <p class="mb-note">75+ strong · 60-74 good · 45-59 worth a look. It measures how well your resume lines up with this ad, not your odds of being hired, so 60 is a real option.</p>
+    </section>`;
+  }
+
   // ---------- list ----------
   let ranked = [];
+  let matchById = new Map();
   function renderList() {
     const f = st.filters;
     const u = me();
-    const all = rankJobs(resume(), st.jobs, { query: f.q, remote: f.remote, limit: 1000 })
+    const all = rankJobs(resume(), st.jobs, { query: f.q, remote: f.remote, limit: Infinity })
       .map((x) => ({ ...x, near: proximity(u, x.job) }))
       .filter((x) => !f.types?.length || f.types.includes(x.job.jobType || ''));
     const abroad = all.filter((x) => !x.near.reachable).length;
     ranked = all.filter((x) => st.showAbroad || x.near.reachable);
     if (st.sort !== 'match') ranked.sort((a, b) => tierRank(st.sort, a.near.tier) - tierRank(st.sort, b.near.tier) || b.match.score - a.match.score);
     ranked = ranked.slice(0, 200);
+    matchById = new Map(ranked.map((x) => [x.job.id, x.match]));
     $('#feed-info').textContent = st.jobs.length ? `${st.feedInfo || st.jobs.length + ' jobs'} · showing ${ranked.length}` : '';
     $('#abroad-count').textContent = abroad ? `(${abroad})` : '';
     $('#no-resume-note').hidden = hasResume();
@@ -126,7 +139,7 @@ export function initJobs(ctx) {
       lastTier = near.tier;
       return `${head}
       <li class="job ${st.selected === job.id ? 'sel' : ''}" data-id="${esc(job.id)}" tabindex="0">
-        <div class="job-score" data-band="${!hasResume() ? 'none' : match.score >= 70 ? 'good' : match.score >= 45 ? 'ok' : 'low'}">${hasResume() ? match.score : '–'}<small>${hasResume() ? 'match' : ''}</small></div>
+        <div class="job-score" data-band="${hasResume() ? match.band.id : 'none'}" title="${hasResume() ? esc(match.band.label) : ''}">${hasResume() ? match.score : '–'}<small>${hasResume() ? esc(match.band.label.replace(' match', '')) : ''}</small></div>
         <div class="job-main">
           <div class="job-title">${esc(job.title)}</div>
           <div class="job-meta">${esc(job.company)}${job.location ? ' · ' + esc(job.location) : ''}${job.salary?.text ? ' · ' + esc(job.salary.text) : ''}</div>
@@ -182,6 +195,7 @@ export function initJobs(ctx) {
         </div>
       </div>
       ${t ? `
+      ${matchById.get(job.id) ? breakdown(matchById.get(job.id)) : ''}
       <section class="tailor">
         <h3>Fit with your resume${t.coverage !== null ? ` <span class="cov">${t.coverage}% of the skills it names</span>` : ''}</h3>
         ${t.matched.length ? `<p class="lbl">Shown in your bullets</p><div>${chips(t.matched, 'good')}</div>` : ''}

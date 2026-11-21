@@ -4,7 +4,7 @@ export { renderResumeHTML, renderLetterHTML, formatDate, LOCALES, TEMPLATES, FON
 export { extractPdfText, extractDocxText, detectKind } from './extract.js';
 export { SOURCES, fetchSource, fetchBoards, dedupeJobs, finalizeJob, htmlToText, decodeEntities, jobTypeOf, JOB_TYPE_LABELS } from './jobs.js';
 export { parsePlace, userPlace, proximity, tierRank, countryFromTimeZone, TIERS, COUNTRIES, US_STATES } from './geo.js';
-export { rankJobs, matchJob, extractSkills, resumeProfile, buildIndex, SKILL_VOCAB } from './match.js';
+export { rankJobs, matchJob, extractSkills, resumeProfile, buildIndex, SKILL_VOCAB, MATCH_BANDS, matchBand } from './match.js';
 export { tailorResume } from './tailor.js';
 export { templateLetter, letterPrompt, bulletPrompt } from './letter.js';
 export { generate, PROVIDERS } from './ai.js';

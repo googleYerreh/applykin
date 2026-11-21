@@ -67,7 +67,7 @@ Shared feeds are listed in `data/feeds.json` (Arbeitnow, and Jobicy for remote j
 
 ## How matching works
 
-Matching runs on your device: 45% skill overlap, 35% job-title similarity and 20% text similarity (TF-IDF). Every score lists the skills you match and the ones you're missing. Tailoring reorders your existing bullets and skills; it never adds or rewords anything. Cover letters are built only from your resume's facts. The optional AI step is told not to invent anything, and you should still check every line.
+Matching runs on your device: 45% skill overlap, 35% job-title similarity and 20% text similarity (TF-IDF). Title similarity compares the field words ("Operations", "Amazon listing") and treats level words ("Manager", "Lead") separately, so a shared "Manager" alone doesn't count; work your bullets show earns partial title credit. Text similarity is calibrated on real feeds (cosine 0.03 = unrelated, 0.13+ = close). Scores read as 75+ strong, 60-74 good, 45-59 worth a look, below that a stretch: they measure how well a resume lines up with an ad, not the odds of being hired. Every score lists the skills you match and the ones you're missing. Tailoring reorders your existing bullets and skills; it never adds or rewords anything. Cover letters are built only from your resume's facts. The optional AI step is told not to invent anything, and you should still check every line.
 
 ### MCP client config
 
