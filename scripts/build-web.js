@@ -9,6 +9,20 @@ const workerAsText = {
   },
 };
 
+// The ranking worker is bundled separately and inlined as text, then started from a Blob,
+// so the page stays a single file.
+const worker = await build({
+  entryPoints: ['web/rank-worker.js'], bundle: true, format: 'iife', minify: true, write: false,
+  target: 'es2022', charset: 'ascii', logLevel: 'warning',
+});
+const rankWorker = {
+  name: 'rank-worker-src',
+  setup(b) {
+    b.onResolve({ filter: /^rank-worker-src$/ }, () => ({ path: 'rank-worker-src', namespace: 'rw' }));
+    b.onLoad({ filter: /.*/, namespace: 'rw' }, () => ({ contents: worker.outputFiles[0].text, loader: 'text' }));
+  },
+};
+
 const out = await build({
   entryPoints: ['web/app.js'],
   bundle: true,
@@ -17,7 +31,7 @@ const out = await build({
   write: false,
   target: 'es2022',
   charset: 'ascii', // keep non-ASCII as escapes in the inlined script
-  plugins: [workerAsText],
+  plugins: [workerAsText, rankWorker],
   logLevel: 'warning',
 });
 

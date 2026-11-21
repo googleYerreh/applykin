@@ -2,6 +2,7 @@
 import { rankJobs, tailorResume, templateLetter, letterPrompt, generate, PROVIDERS, fetchBoards, dedupeJobs,
   STAGES, STAGE_LABELS, trackJob, moveApplication, updateApplication, removeApplication } from '../core/index.js';
 import { SAMPLE_JOBS } from './sample-jobs.js';
+import RANK_WORKER_SRC from 'rank-worker-src';
 import { userPlace, proximity, tierRank, countryFromTimeZone, COUNTRIES, JOB_TYPE_LABELS, jobTypeOf, matchBand } from '../core/index.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -15,7 +16,10 @@ export function initJobs(ctx) {
 
   // ---------- storage ----------
   const save = () => {
-    try { localStorage.setItem(KEY, JSON.stringify({ jobs: st.jobs.slice(0, 400), feedInfo: st.feedInfo, apps: st.apps, ai: st.ai, answers: st.answers, drafts: st.drafts, place: st.place, sort: st.sort, showAbroad: st.showAbroad, filters: st.filters })); } catch {}
+    // The published feed is re-downloaded on each visit (the browser caches it), so only keep
+    // jobs you pasted. Writing thousands of listings here on every click made the page lag.
+    const keep = defaultFeed() ? st.jobs.filter((j) => j.source === 'pasted') : st.jobs.slice(0, 300);
+    try { localStorage.setItem(KEY, JSON.stringify({ jobs: keep, feedInfo: st.feedInfo, apps: st.apps, ai: st.ai, answers: st.answers, drafts: st.drafts, place: st.place, sort: st.sort, showAbroad: st.showAbroad, filters: st.filters })); } catch {}
   };
   try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY) || '{}')); } catch {}
 
@@ -30,7 +34,7 @@ export function initJobs(ctx) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const feed = await res.json();
       const jobs = Array.isArray(feed) ? feed : feed.jobs || [];
-      setJobs(jobs, `${jobs.length} jobs from the feed${feed.generatedAt ? `, updated ${new Date(feed.generatedAt).toLocaleString()}` : ''}`);
+      setJobs(dedupeJobs([...st.jobs.filter((j) => j.source === 'pasted'), ...jobs]), `${jobs.length.toLocaleString()} jobs from the feed${feed.generatedAt ? `, updated ${new Date(feed.generatedAt).toLocaleString()}` : ''}`);
     } catch (e) {
       status(`Couldn't load the feed (${e.message}).${ctx.isHosted() ? ' This hosted page cannot reach other websites; use the downloadable app or the sample listings.' : ''}`, true);
     }
@@ -53,14 +57,15 @@ export function initJobs(ctx) {
     if (!title || description.length < 40) return status('Add a job title and paste the full job description.', true);
     const job = { id: `pasted:${Date.now()}`, source: 'pasted', sourceLabel: 'Pasted', attribution: 'Pasted by you', company: company || 'Unknown company', title, location: '', remote: /remote/i.test(description),
       description, url: url || '', applyUrl: url || '', postedAt: new Date().toISOString(), salary: null };
-    st.jobs = [{ ...job, jobType: jobTypeOf(job) }, ...st.jobs];
+    st.jobs = [{ ...job, jobType: jobTypeOf(job) }, ...st.jobs]; jobsGen++;
     ['#pj-title', '#pj-company', '#pj-desc', '#pj-url'].forEach((s) => ($(s).value = ''));
     save(); renderList(); select(job.id);
   }
 
   const withType = (jobs) => jobs.map((j) => (j.jobType !== undefined ? j : { ...j, jobType: jobTypeOf(j) }));
   function setJobs(jobs, info) {
-    st.jobs = withType(jobs); st.feedInfo = info; st.selected = null;
+    st.jobs = withType(jobs); jobsGen++; st.feedInfo = info;
+    if (!st.jobs.some((j) => j.id === st.selected) && !st.apps.some((a) => a.id === st.selected)) st.selected = null;
     save(); status(''); renderList(); renderDetail();
   }
 
@@ -111,21 +116,77 @@ export function initJobs(ctx) {
     </section>`;
   }
 
+  // ---------- scoring (in a background worker) ----------
+  // Scores only change when the jobs, your resume or the search change. Sorting, location,
+  // job-type filters and clicks reuse the last scores, and the scoring itself runs off the
+  // main thread so tabs and buttons always respond.
+  let scored = null, scoredKey = '', pendingKey = '', rankSeq = 0, jobsGen = 0, sentGen = -1;
+  let ranker = null;
+  try {
+    ranker = new Worker(URL.createObjectURL(new Blob([RANK_WORKER_SRC], { type: 'text/javascript' })));
+    ranker.onmessage = (e) => {
+      if (e.data.id !== rankSeq) return; // an older request; a newer one is on its way
+      applyScores(e.data.results.map(([i, match]) => ({ job: st.jobs[i], match })).filter((x) => x.job), pendingKey);
+    };
+    ranker.onerror = () => { ranker = null; pendingKey = ''; requestScores(); };
+  } catch { ranker = null; }
+
+  function applyScores(list, key) {
+    scored = list; scoredKey = key; pendingKey = '';
+    $('#job-list').removeAttribute('aria-busy');
+    renderList();
+    if (st.selected && !st.applyStep) renderDetail();
+  }
+  function scoreKey() {
+    return `${jobsGen}|${hasResume() ? JSON.stringify(ctx.getResume()) : ''}|${st.filters.q}|${st.filters.remote ? 1 : 0}`;
+  }
+  function requestScores() {
+    const key = scoreKey();
+    if (key === scoredKey || key === pendingKey) return;
+    pendingKey = key;
+    const id = ++rankSeq;
+    if (!st.jobs.length) return applyScores([], key);
+    $('#job-list').setAttribute('aria-busy', 'true');
+    const req = { type: 'rank', id, resume: resume(), q: st.filters.q, remote: !!st.filters.remote };
+    if (ranker) {
+      if (sentGen !== jobsGen) { ranker.postMessage({ type: 'jobs', jobs: st.jobs }); sentGen = jobsGen; }
+      ranker.postMessage(req);
+    } else {
+      setTimeout(() => { if (id === rankSeq) applyScores(rankJobs(req.resume, st.jobs, { query: req.q, remote: req.remote, limit: Infinity }), key); }, 0);
+    }
+  }
+
+  // Distance tier per job, cached until your location changes.
+  const nearCache = new WeakMap();
+  function nearOf(u, job) {
+    const k = `${u.city}|${u.state}|${u.country}`;
+    const c = nearCache.get(job);
+    if (c && c.k === k) return c.near;
+    const near = proximity(u, job);
+    nearCache.set(job, { k, near });
+    return near;
+  }
+
   // ---------- list ----------
   let ranked = [];
   let matchById = new Map();
   function renderList() {
+    requestScores();
     const f = st.filters;
     const u = me();
-    const all = rankJobs(resume(), st.jobs, { query: f.q, remote: f.remote, limit: Infinity })
-      .map((x) => ({ ...x, near: proximity(u, x.job) }))
-      .filter((x) => !f.types?.length || f.types.includes(x.job.jobType || ''));
+    if (!scored) {
+      $('#job-list').innerHTML = `<li class="empty">${st.jobs.length ? `Scoring ${st.jobs.length.toLocaleString()} jobs against your resume…` : 'No jobs loaded yet. Load the feed, fetch boards, paste a job, or try the sample listings.'}</li>`;
+      return;
+    }
+    const all = scored
+      .filter((x) => !f.types?.length || f.types.includes(x.job.jobType || ''))
+      .map((x) => ({ ...x, near: nearOf(u, x.job) }));
     const abroad = all.filter((x) => !x.near.reachable).length;
     ranked = all.filter((x) => st.showAbroad || x.near.reachable);
     if (st.sort !== 'match') ranked.sort((a, b) => tierRank(st.sort, a.near.tier) - tierRank(st.sort, b.near.tier) || b.match.score - a.match.score);
     ranked = ranked.slice(0, 200);
     matchById = new Map(ranked.map((x) => [x.job.id, x.match]));
-    $('#feed-info').textContent = st.jobs.length ? `${st.feedInfo || st.jobs.length + ' jobs'} · showing ${ranked.length}` : '';
+    $('#feed-info').textContent = st.jobs.length ? `${st.feedInfo || st.jobs.length + ' jobs'} · showing ${ranked.length}${pendingKey ? ' · updating scores…' : ''}` : '';
     $('#abroad-count').textContent = abroad ? `(${abroad})` : '';
     $('#no-resume-note').hidden = hasResume();
     document.querySelectorAll('[data-sort]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.sort === st.sort)));
@@ -160,7 +221,8 @@ export function initJobs(ctx) {
   function select(id) {
     st.selected = id;
     st.applyStep = null;
-    renderList(); renderDetail();
+    document.querySelectorAll('#job-list .job').forEach((li) => li.classList.toggle('sel', li.dataset.id === id));
+    renderDetail();
     if (window.innerWidth < 900) $('#job-detail').scrollIntoView({ behavior: 'smooth' });
   }
 
@@ -433,7 +495,8 @@ export function initJobs(ctx) {
   $('#load-live').addEventListener('click', () => loadLive($('#live-boards').value));
   $('#load-sample').addEventListener('click', () => setJobs(SAMPLE_JOBS.map((j) => ({ ...j })), `${SAMPLE_JOBS.length} fictional sample listings`));
   $('#pj-add').addEventListener('click', addPasted);
-  $('#f-q').addEventListener('input', (e) => { st.filters.q = e.target.value; renderList(); });
+  let qTimer;
+  $('#f-q').addEventListener('input', (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { st.filters.q = e.target.value; renderList(); }, 250); });
   $('#place').addEventListener('click', (e) => {
     if (e.target.closest('[data-place-edit]')) { st.editingPlace = true; renderPlace(); return; }
     if (e.target.closest('[data-place-save]')) {
@@ -470,14 +533,16 @@ export function initJobs(ctx) {
   $('#hosted-note').hidden = !ctx.isHosted();
 
   st.jobs = withType(st.jobs || []);
+  // Older versions saved up to 400 feed listings here; drop them so the full feed loads.
+  if (defaultFeed()) st.jobs = st.jobs.filter((j) => j.source === 'pasted');
   $('#f-abroad').checked = !!st.showAbroad;
   st.filters.types ||= [];
   renderPlace(); renderList(); renderDetail(); renderTracker(); renderSettings();
   // Auto-load the published feed when served next to one and nothing is loaded yet.
-  if (!st.jobs.length && defaultFeed()) loadFeed(defaultFeed());
+  if (defaultFeed()) loadFeed(defaultFeed());
 
   return {
-    onResumeChange() { renderList(); if (st.selected && !st.applyStep) renderDetail(); },
+    onResumeChange() { requestScores(); },
     onShow(tab) { if (tab === 'jobs') { if (!st.place?.confirmed) st.place = defaultPlace(); renderPlace(); renderList(); } if (tab === 'tracker') renderTracker(); },
     hostedChanged() { renderDetail(); syncSettings(); $('#hosted-note').hidden = !ctx.isHosted(); $('#feed-url').value = defaultFeed(); },
   };
