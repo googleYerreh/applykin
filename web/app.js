@@ -9,6 +9,7 @@ import { initGuide } from './guide.js';
 import { initHome } from './home.js';
 import { renderPage, PAGES } from './pages.js';
 import { initOnboard } from './onboard.js';
+import { initCoach } from './coach-ui.js';
 
 pdfjs.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }));
 
@@ -67,6 +68,8 @@ function load(resume) {
   $('#new').hidden = false;
   renderEditor();
   refresh();
+  coachUI?.reset();
+  location.hash = 'coach';
   window.scrollTo({ top: 0 });
 }
 
@@ -307,7 +310,7 @@ function init() {
     if (!confirmReset()) return;
     try { localStorage.removeItem(STORE); } catch {}
     state.resume = null;
-    $('#workspace').hidden = true; $('#start').hidden = false; $('#new').hidden = true; input.value = '';
+    $('#workspace').hidden = true; $('#start').hidden = false; $('#new').hidden = true; input.value = ''; coachUI?.reset();
   });
 
   restore();
@@ -518,10 +521,10 @@ async function onPhoto(file) {
 }
 
 // ---------- tabs and routes ----------
-const TABS = ['home', 'page', 'onboard', 'resume', 'jobs', 'tracker', 'settings'];
+const TABS = ['home', 'page', 'onboard', 'coach', 'resume', 'jobs', 'tracker', 'settings'];
 // Links from the landing page's menu open a tool inside the app.
 const ROUTES = {
-  'resume-builder': { tab: 'resume', intent: 'Add your resume and Applykin walks you through improving it in six short steps.', run: () => setStep('overview') },
+  'resume-builder': { tab: 'resume', intent: 'Add your resume and the Applykin coach walks you through improving it, step by step.', run: () => { location.hash = 'coach'; } },
   designs: { tab: 'resume', intent: 'Add your resume to try every design on it.', run: () => setStep('design') },
   'ats-checker': { tab: 'resume', intent: 'Add your resume to see exactly what a tracking system reads from it.', run: () => openPanel('#readout-panel') },
   'resume-checker': { tab: 'resume', intent: 'Add your resume to get your two scores and a list of fixes.', run: () => openPanel('#score-panel') },
@@ -540,6 +543,7 @@ function openPanel(sel) {
 let onboardUI = null;
 let pendingIntent = '';
 let onboardTarget = '';
+let coachUI = null;
 function showPage(id) {
   const el = $('#page');
   if (el.dataset.id !== id) {
@@ -574,6 +578,7 @@ function showTab(name) {
   if (name === 'page') showPage(pageId);
   else document.title = 'Applykin — free resume checker and job search';
   if (name === 'onboard') onboardUI?.start();
+  if (name === 'coach') coachUI?.show();
   document.querySelectorAll('nav.tabs button').forEach((b) => b.setAttribute('aria-current', b.dataset.tab === name ? 'page' : 'false'));
   const canon = name === 'page' ? 'page/' + pageId : name === 'onboard' ? 'get-started' : name;
   try { if (location.hash.slice(1) !== canon) history.replaceState(null, '', '#' + canon); } catch {}
@@ -635,6 +640,21 @@ homeUI = initHome({
   renderTemplate: (t, k = 'strong') => renderResumeHTML(sampleOf(k), { template: t, locale: 'us' }),
   atsScore: (t) => scoreResume(sampleOf('strong'), { template: t }).ats,
   qualityOf: (k) => scoreResume(sampleOf(k), { template: 'classic' }).quality,
+});
+coachUI = initCoach({
+  getResume: () => state.resume,
+  setResume: (r) => { state.resume = r; save(); renderEditor(); refresh(); },
+  score: (r) => { const s = scoreResume(r, { template: state.template }); return { quality: s.quality, ats: s.ats }; },
+  renderHTML: (r) => renderResumeHTML(r, renderOpts()),
+  templates: TEMPLATES, accents: ACCENTS, fonts: FONTS,
+  atsLabel: (k) => (k === 'caution' ? 'Email & networking' : ATS_LEVELS[k].label),
+  templateLabel: () => TEMPLATES[state.template].label,
+  getTemplate: () => state.template,
+  setTemplate: (k) => setTemplate(k),
+  getDesign: () => state.design,
+  setDesign: (p) => { state.design = { ...state.design, ...p }; save(); renderDesign(); refresh(); },
+  ai: () => { const c = jobsUI?.aiConfig?.(); return c?.provider && !window.claude?.use ? c : null; },
+  openEditor: () => { state.mode = 'full'; save(); location.hash = 'resume'; refresh(); },
 });
 onboardUI = initOnboard({
   el: $('#onboard'),

@@ -577,6 +577,78 @@ body[data-view=home] main { max-width: none; padding: 24px 24px 0; }
 .p-sc-n { position: absolute; right: 26px; top: 14px; font-size: 76px; font-weight: 800; color: rgba(255,255,255,.05); letter-spacing: -0.04em; }
 @media (max-width: 860px) { .p-scorecard { grid-template-columns: 1fr; padding: 26px; } .p-sc-text { border: 0; padding: 0; } }
 
+/* ---------- resume coach ---------- */
+#coach { margin: -24px -24px 0; min-height: calc(100vh - 70px); background: linear-gradient(135deg, #f7f6f2, #fbf1e8); }
+.co-empty, .co-steps { max-width: 640px; margin: 0 auto; padding: 56px 24px; }
+.co-empty { text-align: center; }
+.co-score-top { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 18px; color: var(--muted); font-size: 13px; }
+.co-ring { --v: 50; width: 46px; height: 46px; border-radius: 50%; background: conic-gradient(#e2742f calc(var(--v) * 1%), #e6e2da 0); display: grid; place-items: center; position: relative; flex: none; }
+.co-ring::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; background: #fff; }
+.co-ring b { position: relative; font-size: 14px; } .co-ring.sm { width: 32px; height: 32px; } .co-ring.sm b { font-size: 11px; }
+.co-steps h1 { font-size: clamp(30px, 4vw, 44px); letter-spacing: -0.03em; line-height: 1.15; margin: 0 0 44px; text-transform: none; color: var(--ink); }
+.co-list { list-style: none; padding: 0; margin: 0; position: relative; }
+.co-list li { display: grid; grid-template-columns: 52px 1fr auto; gap: 14px; align-items: start; padding: 20px 22px; border-radius: 20px; position: relative; }
+.co-list li + li::before { content: ''; position: absolute; left: 47px; top: -16px; height: 32px; border-left: 2px solid #c9c6be; }
+.co-list li.done + li::before { border-color: var(--ink); }
+.co-dot { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #c9c6be; display: grid; place-items: center; background: #fff; }
+.co-dot::after { content: ''; width: 12px; height: 12px; border-radius: 50%; background: #c9c6be; }
+.co-list li.done .co-dot { background: var(--ink); border-color: var(--ink); } .co-list li.done .co-dot::after { background: #fff; }
+.co-list li.on { background: #18181d; color: #fff; } .co-list li.on .co-dot { background: #18181d; border-color: #fff; } .co-list li.on .co-dot::after { background: #fff; }
+.co-list li.later { opacity: .55; }
+.co-n { margin: 6px 0 2px; font-weight: 800; font-size: 20px; } .co-l { margin: 0; font-size: 18px; color: inherit; opacity: .85; }
+.co-b { margin: 6px 0 14px; font-size: 14px; color: rgba(255,255,255,.65); }
+.co-go { background: #e2742f; border-color: #e2742f; border-radius: 999px; padding: 10px 28px; font-size: 16px; }
+.co-state { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #e2742f; color: #e2742f; background: none; font-weight: 800; cursor: pointer; margin-top: 10px; }
+.co-list li.on .co-state { border-color: #f08a45; color: #f08a45; }
+.co-foot { color: var(--muted); font-size: 13.5px; margin-top: 30px; text-align: center; }
+.co-work { display: grid; grid-template-columns: minmax(380px, 1fr) minmax(420px, 1.1fr); gap: 24px; padding: 20px 24px; max-width: 1500px; margin: 0 auto; height: calc(100vh - 70px); }
+.co-left { display: flex; flex-direction: column; min-height: 0; }
+.co-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.co-back { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: #fff; font-size: 22px; cursor: pointer; }
+.co-tabs { display: flex; background: #fff; border-radius: 999px; padding: 4px; box-shadow: 0 2px 10px rgba(0,0,0,.06); margin: 0 auto; }
+.co-tabs button { border: 0; background: none; padding: 10px 26px; border-radius: 999px; font-size: 16px; cursor: pointer; color: var(--ink); }
+.co-tabs button[aria-selected=true] { background: var(--ink); color: #fff; }
+.co-pill { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 4px 14px 4px 4px; font-weight: 700; font-size: 13px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+.co-log { flex: 1; overflow-y: auto; padding: 4px 4px 12px; display: grid; gap: 14px; align-content: start; }
+.co-msg { display: flex; gap: 10px; align-items: flex-start; } .co-msg.me { justify-content: flex-end; }
+.co-av { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+.co-bubble { background: #fff; border: 1px solid var(--line); border-radius: 4px 16px 16px 16px; padding: 11px 14px; font-size: 15px; line-height: 1.5; max-width: 88%; }
+.co-msg.me .co-bubble { background: var(--ink); color: #fff; border-color: var(--ink); border-radius: 16px 4px 16px 16px; }
+.co-card { flex: 1; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; box-shadow: 0 6px 24px rgba(0,0,0,.05); }
+.co-card-h { display: flex; justify-content: space-between; gap: 10px; align-items: center; } .co-card-h b { font-size: 16.5px; }
+.co-gain { flex: none; background: #e3f4ec; color: var(--good); font-weight: 800; font-size: 12px; border-radius: 999px; padding: 4px 10px; }
+.co-where { margin: 4px 0 0; color: #b8590e; font-size: 13px; font-weight: 600; }
+.co-why { color: var(--muted); font-size: 14px; margin: 6px 0 12px; }
+.co-q { font-size: 15px; white-space: normal; background: #faf8f4; border-radius: 10px; padding: 10px 12px; margin: 0 0 8px; }
+.co-field { display: block; margin-bottom: 10px; } .co-field > span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
+.co-field textarea { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 15px; line-height: 1.5; resize: vertical; background: #fff; }
+.co-field textarea:focus { outline: 2px solid #f3b98c; border-color: #e2742f; }
+.co-ro { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 14.5px; background: #faf8f4; }
+.co-field.old .co-ro { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(194,65,45,.5); }
+.co-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 6px; } .co-actions.left { justify-content: flex-start; margin-top: 10px; }
+.co-actions .btn.small { border-radius: 999px; padding: 8px 18px; } .co-actions .btn:not(.ghost) { background: #e2742f; border-color: #e2742f; }
+.co-actions .btn.ghost { border-color: #e2742f; color: #d26a17; }
+.co-input { display: flex; gap: 8px; align-items: flex-end; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 10px 10px 10px 16px; box-shadow: 0 4px 18px rgba(0,0,0,.05); }
+.co-input textarea { flex: 1; border: 0; resize: none; font-size: 15.5px; padding: 8px 0; background: none; outline: none; max-height: 120px; }
+.co-input button { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--ink); color: #fff; font-size: 18px; cursor: pointer; } .co-input button:disabled { background: #e6e2da; }
+.co-style { overflow-y: auto; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+.co-h { font-weight: 700; margin: 14px 0 8px; display: flex; justify-content: space-between; } .co-h:first-child { margin-top: 0; }
+.co-tpls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.co-tpls button { text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; } .co-tpls button[aria-pressed=true] { border: 2px solid #e2742f; background: #fff8f1; }
+.co-tpls small { display: block; font-size: 12px; } .co-tpls small[data-ats=best] { color: var(--good); } .co-tpls small[data-ats=good] { color: #2f5ea8; } .co-tpls small[data-ats=caution] { color: #a15c07; }
+.co-swatches { display: flex; gap: 8px; flex-wrap: wrap; } .co-swatches button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; } .co-swatches button[aria-pressed=true] { box-shadow: 0 0 0 2px var(--ink); }
+#co-font { width: 100%; padding: 9px; border-radius: 10px; border: 1px solid var(--line); } #co-size { width: 100%; }
+.co-note { color: var(--muted); font-size: 13px; margin: 14px 0 0; }
+.co-right { display: flex; flex-direction: column; min-height: 0; }
+.co-prev-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.co-prev-bar > button, .co-pages button { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: #fff; cursor: pointer; font-size: 18px; }
+.co-prev-note { color: var(--muted); font-size: 13px; flex: 1; }
+.co-pages { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px; padding: 3px; box-shadow: 0 2px 10px rgba(0,0,0,.06); } .co-pages button { border: 0; }
+.co-sheet { --scale: 1; flex: 1; overflow: auto; background: #fff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,.08); position: relative; }
+#co-frame { width: 816px; border: 0; transform-origin: 0 0; display: block; }
+.mode-coach { align-self: center; font-weight: 700; color: #d26a17; text-decoration: none; padding: 6px 12px; border-radius: 8px; background: #fff3e8; }
+@media (max-width: 960px) { .co-work { grid-template-columns: 1fr; height: auto; } .co-log { max-height: 60vh; } .co-sheet { height: 70vh; flex: none; } }
+
 .start-intent { background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 10px 14px; font-weight: 600; margin: 0 0 16px; }
 
 @media (max-width: 980px) {
@@ -817,6 +889,7 @@ body[data-view=home] main { max-width: none; padding: 24px 24px 0; }
 
 <div data-panel="page" class="home" id="page" hidden></div>
 <div data-panel="onboard" id="onboard" hidden></div>
+<div data-panel="coach" id="coach" hidden></div>
 <div data-panel="resume">
   <section id="start">
     <p id="start-intent" class="start-intent" hidden></p>
@@ -851,6 +924,7 @@ body[data-view=home] main { max-width: none; padding: 24px 24px 0; }
   <section id="workspace" hidden>
     <div class="left">
       <div class="mode-switch" role="group" aria-label="How to edit">
+        <a class="mode-coach" href="#coach">✦ Coach</a>
         <button type="button" data-mode="guided">Step by step</button>
         <button type="button" data-mode="full">Edit everything</button>
       </div>

@@ -108,3 +108,39 @@ test('two separate scores with evidence for every rule; letter PDF uses the resu
   const html = C.renderLetterHTML(parseResume(txt('strong')), 'Dear team,\n\nHello <b>there</b>.', { template: 'modern', company: 'Acme' });
   assert.match(html, /Maria Gonzalez/); assert.match(html, /#0b5cad/); assert.ok(!html.includes('<b>there'));
 });
+
+test('coach: suggestions reword only what is there and never add facts', async () => {
+  const { strengthenOpener, removeFirstPerson, cleanSummary, splitLong, coachSuggestions, applyOps, draftSummary } = await import('../core/coach.js');
+  const { SAMPLES } = await import('../web/samples.js');
+  assert.equal(strengthenOpener('Responsible for managing a team of 12 associates'), 'Managed a team of 12 associates');
+  assert.equal(strengthenOpener('Responsible for loading trucks'), 'Loaded trucks');
+  assert.equal(strengthenOpener('Responsible for taking orders'), 'Took orders');
+  assert.equal(strengthenOpener('Helped to organize weekly events'), null, 'unclear rewrites are left to the person');
+  assert.equal(removeFirstPerson('I managed my team of 5'), 'Managed the team of 5');
+  assert.equal(cleanSummary('I am a hard worker and team player. I am looking for a job where I can grow.'), '', 'nothing honest left -> empty, so a fact-based draft is offered');
+  assert.deepEqual(splitLong('Recruited and trained a 12-person team across three sites; developed operating procedures for guest check-in and cleaning turnovers'),
+    ['Recruited and trained a 12-person team across three sites', 'Developed operating procedures for guest check-in and cleaning turnovers']);
+  const r = parseResume(SAMPLES.strong);
+  const source = JSON.stringify(r).toLowerCase();
+  // Every word in a patch must come from the resume itself or be a plain verb/connector.
+  const ALLOWED = new Set('owned oversaw supported managed loaded took scheduled coordinated applied with years of experience in and the a an keywords skills name'.split(' '));
+  for (const step of ['structure', 'work', 'education']) {
+    for (const base of [parseResume(SAMPLES.weak), r]) {
+      const src = JSON.stringify(base).toLowerCase();
+      for (const s of coachSuggestions(base, step)) {
+        if (s.kind !== 'patch') continue;
+        const added = JSON.stringify(applyOps(base, s.ops)).toLowerCase().match(/[a-z]{4,}/g).filter((w) => !src.includes(w) && !ALLOWED.has(w) && !src.includes(w.replace(/i?ed$/, 'ing')) && !src.includes(w.replace(/ied$/, 'ying')) && !src.includes(w.replace(/d$/, 'ing')));
+        assert.deepEqual(added, [], `${s.id} adds no new words`);
+      }
+    }
+  }
+  const draft = draftSummary(r);
+  for (const w of draft.toLowerCase().match(/[a-z]{4,}/g)) assert.ok(source.includes(w) || ALLOWED.has(w), `summary word "${w}" comes from the resume`);
+  // Accepting every patch never lowers the score.
+  let cur = parseResume(SAMPLES.weak);
+  for (const step of ['structure', 'work', 'education']) for (const s of coachSuggestions(cur, step)) if (s.kind === 'patch') {
+    const next = applyOps(cur, s.ops);
+    assert.ok(scoreResume(next).quality >= scoreResume(cur).quality - 1, `${s.id} does not hurt the score`);
+    cur = next;
+  }
+});

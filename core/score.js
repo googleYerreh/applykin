@@ -16,10 +16,10 @@ export function isActionVerb(word) {
     ACTION_VERBS.has(b.replace(/y$/, 'ied')) || ACTION_VERBS.has(IRREGULAR[b]));
 }
 
-const WEAK_OPENERS = /^(responsible for|duties included|worked on|helped( to)?|assisted with|tasked with|involved in|in charge of|participated in)\b/i;
-const FIRST_PERSON = /\b(i|me|my|mine|we|our)\b/i;
-const CLICHES = ['team player', 'hard worker', 'hardworking', 'go-getter', 'results-driven', 'results driven', 'detail-oriented', 'detail oriented', 'self-starter', 'self starter', 'think outside the box', 'synergy', 'dynamic', 'passionate', 'motivated individual', 'proven track record', 'best of breed', 'go-to person', 'rockstar', 'ninja', 'guru', 'excellent communication skills'];
-const NUMBER_RE = /(\d|%|\$|€|£|\bpercent\b|\bmillion\b|\bthousand\b|\bdoubled\b|\btripled\b|\bhalved\b|\bx\d|\d+x)/i;
+export const WEAK_OPENERS = /^(responsible for|duties included|worked on|helped( to)?|assisted with|tasked with|involved in|in charge of|participated in)\b/i;
+export const FIRST_PERSON = /\b(i|me|my|mine|we|our)\b/i;
+export const CLICHES = ['team player', 'hard worker', 'hardworking', 'go-getter', 'results-driven', 'results driven', 'detail-oriented', 'detail oriented', 'self-starter', 'self starter', 'think outside the box', 'synergy', 'dynamic', 'passionate', 'motivated individual', 'proven track record', 'best of breed', 'go-to person', 'rockstar', 'ninja', 'guru', 'excellent communication skills'];
+export const NUMBER_RE = /(\d|%|\$|€|£|\bpercent\b|\bmillion\b|\bthousand\b|\bdoubled\b|\btripled\b|\bhalved\b|\bx\d|\d+x)/i;
 
 const words = (s) => (s || '').trim().split(/\s+/).filter(Boolean);
 const allBullets = (r) => (r.work || []).flatMap((w) => w.highlights || []);

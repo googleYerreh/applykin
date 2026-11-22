@@ -545,6 +545,7 @@ export function initJobs(ctx) {
     onResumeChange() { requestScores(); },
     hint(msg) { status(msg); },
     getPlace() { return { ...place() }; },
+    aiConfig() { return st.ai; },
     // Answers from the "Get started" questions: where you are, what work, near or remote first.
     setPrefs({ place: pl, types, sort }) {
       if (pl) st.place = { city: pl.city || '', region: pl.region || '', country: pl.country || '', confirmed: true };
