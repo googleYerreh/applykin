@@ -6,6 +6,8 @@
 //         department, salary: {min,max,currency,interval,text}|null, description (plain text),
 //         url, applyUrl, postedAt (ISO), attribution }
 
+import { safeUrl } from './safety.js';
+
 export const SOURCES = {
   greenhouse: {
     label: 'Greenhouse',
@@ -196,6 +198,9 @@ export function finalizeJob(j) {
     attribution: src?.attribution || `from ${j.company}'s ${src?.label || ''} job board`.replace(/\s+/g, ' '),
     jobType: j.jobType || jobTypeOf(j),
     description: (j.description || '').slice(0, 20000),
+    // Only http(s) links may become clickable; anything else (javascript:, data:…) is dropped.
+    url: safeUrl(j.url),
+    applyUrl: safeUrl(j.applyUrl) || safeUrl(j.url),
   };
 }
 

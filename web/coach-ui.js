@@ -3,6 +3,7 @@
 // Right: the live resume, updated after every change.
 import { COACH_STEPS, coachSuggestions, coachOverview, applyOps } from '../core/coach.js';
 import { generate } from '../core/ai.js';
+import { newFacts } from '../core/safety.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nl = (s) => esc(s).replace(/\n/g, '<br>');
@@ -165,6 +166,7 @@ export function initCoach(ctx) {
         if (op.op === 'set' && e) return { ...op, value: e.v };
         if (op.op === 'splitBullet' && e) return { ...op, value: e.v.split('\n').map((x) => x.trim()).filter(Boolean) };
         if (op.op === 'addSkills' && e) return { ...op, value: e.v.split(',').map((x) => x.trim()).filter(Boolean) };
+        if (op.op === 'addBullet' && e) return { ...op, value: e.v };
         if (op.op === 'set' && /keywords$/.test(op.path) && e) return { ...op, value: e.v.split(',').map((x) => x.trim()).filter(Boolean) };
         return op;
       });
@@ -176,9 +178,17 @@ export function initCoach(ctx) {
     if (s.kind !== 'ask') { accept(text.trim()); return; }
     say(text.trim(), 'me');
     const ops = s.answer(text);
-    if (ops === null) { say("I couldn't read that. Try the format in the example, or press Skip."); renderWork(); return; }
+    if (ops === null) { say(s.invalid || "I couldn't read that. Try the format in the example, or press Skip."); renderWork(); return; }
     if (!ops.length) { st.skipped.add(s.id); say('No problem, skipped.'); next(); return; }
+    // A fact the person typed goes onto the resume only after they see the finished line.
+    if (s.confirm) { st.current = confirmCard(s, ops); say('Here is how it will read. Keep it only if you could back it up in an interview.'); renderWork(); return; }
     commit(ops, ctx.score(ctx.getResume()), null);
+  }
+  function confirmCard(s, ops) {
+    const op = ops[0];
+    const fields = [...(s.bullet ? [{ label: 'Before', value: s.bullet, readonly: true, old: true }] : []), { label: s.bullet ? 'After' : 'New bullet', path: op.path, value: op.value }];
+    return { id: s.id, step: s.step, kind: 'patch', title: 'Check the new line', where: s.where,
+      why: 'Numbers and results are what interviewers ask about. Edit it if anything is off.', fields, ops };
   }
   function commit(ops, before, typed) {
     if (typed) say(typed, 'me');
@@ -198,8 +208,11 @@ export function initCoach(ctx) {
         system: 'You reword one resume bullet. Keep every fact, number, name and claim exactly as given. Do not add numbers, tools, results or responsibilities that are not in the original. Start with a strong past-tense verb. Return only the bullet, under 30 words.',
         prompt: `ORIGINAL: ${s.bullet}\nCURRENT DRAFT: ${ta.value}`,
       });
-      ta.value = String(out).trim().replace(/^[-•*]\s*/, '').split('\n')[0];
-      say('Here is a reworded version. Check that every fact is still true, then Accept or edit it.');
+      const draft = String(out).trim().replace(/^[-•*]\s*/, '').split('\n')[0];
+      // Never-invent, checked at runtime: anything the AI added that is not in the bullet is refused.
+      const added = newFacts(draft, [s.bullet, ta.value]);
+      if (added.length) say(`The AI added things that aren't in your bullet (${added.slice(0, 5).join(', ')}), so I kept your version. You can edit it yourself, or try again.`);
+      else { ta.value = draft; say('Here is a reworded version. Check that every fact is still true, then Accept or edit it.'); }
     } catch (e) { say(`The AI provider didn't answer (${e.message}). The suggestion above still works without it.`); }
     btn.disabled = false; btn.textContent = '✦ Reword with AI';
   }

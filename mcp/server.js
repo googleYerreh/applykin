@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Applykin MCP server (stdio). Lets any MCP client (Claude, IDE agents) parse, score and export resumes.
+import { safeUrl } from '../core/safety.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
@@ -85,7 +86,7 @@ server.tool('match_jobs', 'Rank jobs in a jobs.json file for a resume, with matc
   { ...resumeInput, jobs_path: z.string(), query: z.string().optional(), location: z.string().optional(), remote_only: z.boolean().optional(), limit: z.number().default(20) },
   async (a) => {
     const ranked = rankJobs(await getResume(a), await loadJobs(a.jobs_path), { query: a.query, location: a.location, remote: a.remote_only, limit: a.limit });
-    return json(ranked.map(({ job, match }) => ({ score: match.score, id: job.id, title: job.title, company: job.company, location: job.location, remote: job.remote, salary: job.salary?.text, apply_url: job.applyUrl, matched: match.matched, missing: match.missing, source: job.attribution })));
+    return json(ranked.map(({ job, match }) => ({ score: match.score, id: job.id, title: job.title, company: job.company, location: job.location, remote: job.remote, salary: job.salary?.text, apply_url: safeUrl(job.applyUrl), matched: match.matched, missing: match.missing, source: job.attribution })));
   });
 
 server.tool('tailor_resume', 'Compare a resume with a job: skills shown, skills only listed, skills missing, suggestions, and a version with the most relevant bullets first (nothing invented).',

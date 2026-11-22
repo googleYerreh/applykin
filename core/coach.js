@@ -3,6 +3,7 @@
 // or asks the person a question. It never adds a fact the person did not write or type.
 import { scoreResume, WEAK_OPENERS, FIRST_PERSON, CLICHES, NUMBER_RE, isActionVerb } from './score.js';
 import { extractSkills } from './match.js';
+import { safeUrl } from './safety.js';
 
 export const COACH_STEPS = [
   { id: 'structure', label: 'Structure', blurb: 'Contact details, order, dates and your summary.' },
@@ -75,16 +76,39 @@ export function strengthenOpener(bullet) {
     const past = gerundToPast(first);
     if (past) return `${past}${rest.slice(first.length)}`;
   }
-  // "Responsible for the budget" -> "Owned the budget"; "In charge of X" -> "Oversaw X"
-  if (/^(responsible for|in charge of)$/.test(opener) && rest) return `${opener.startsWith('in') ? 'Oversaw' : 'Owned'} ${rest}`;
-  if (/^(assisted with|helped( to)?)$/.test(opener) && rest) {
-    const obj = rest.replace(/^(with|to)\s+/i, '');
-    const w0 = obj.split(/\s+/)[0] || '';
-    // "Helped organize events" names an action, not an object; leave it for the person to reword.
-    if (isActionVerb(w0 + 'ed') || isActionVerb(w0 + 'd') || isActionVerb(w0)) return null;
-    return `Supported ${obj}`;
-  }
+  // "Responsible for the budget" or "Assisted with audits" says nothing about how much the person did.
+  // Picking "Owned" or "Supported" for them could overstate or understate it, so the coach asks instead
+  // (see scopeQuestion).
   return null;
+}
+
+// The verbs a person may choose for a duty-style bullet, from most to least ownership.
+export const SCOPE_VERBS = ['Led', 'Managed', 'Handled', 'Supported'];
+
+/**
+ * For "Responsible for the budget" / "In charge of X" / "Assisted with X" / "Helped with X":
+ * the object of the duty, so the person can pick the verb that is true. null when it does not apply.
+ * "Helped organize events" names an action, not an object, and is left for the person to reword.
+ */
+export function scopeQuestion(bullet) {
+  const b = String(bullet).trim();
+  const m = b.match(WEAK_OPENERS);
+  if (!m) return null;
+  const opener = m[0].toLowerCase();
+  if (!/^(responsible for|in charge of|assisted with|helped( to)?)$/.test(opener)) return null;
+  const obj = b.slice(m[0].length).trim().replace(/^(with|to)\s+/i, '');
+  if (!obj) return null;
+  const w0 = obj.split(/\s+/)[0] || '';
+  if (/ing$/i.test(w0) || isActionVerb(w0 + 'ed') || isActionVerb(w0 + 'd') || isActionVerb(w0)) return null;
+  return { object: obj };
+}
+
+/** Read the person's choice of verb ("led", "2", "Handled it") -> "Led" | … | null. */
+export function readScopeVerb(text) {
+  const t = String(text).trim().toLowerCase();
+  if (/^[1-4]$/.test(t)) return SCOPE_VERBS[Number(t) - 1];
+  const forms = { Led: /^(led|lead)\b/, Managed: /^manag/, Handled: /^handl/, Supported: /^support/ };
+  return SCOPE_VERBS.find((v) => forms[v].test(t)) || null;
 }
 
 /** "I managed my team of 5" -> "Managed a team of 5". */
@@ -144,7 +168,8 @@ export function coachSuggestions(resume, step) {
     if (!b.email) ask('email', 'Add your email', 'Recruiters need a way to reply. Email is the one they use most.', 'What email should employers use?', 'basics.email', 'name@example.com');
     if (!b.phone) ask('phone', 'Add a phone number', 'Many recruiters call before they email.', 'What phone number should employers use?', 'basics.phone', '(555) 555-0100');
     if (!b.location?.city) ask('city', 'Add your city', 'Recruiters and job search tools filter by location.', 'Which city and state do you live in?', 'basics.location.city', 'e.g. Temecula, CA');
-    if (!(b.profiles || []).length && !b.url) out.push({ id: 'link', step, kind: 'ask', title: 'Add a profile link', why: 'A LinkedIn or portfolio link lets a recruiter check your background in one click.', question: 'Paste your LinkedIn or portfolio link (or type "skip").', placeholder: 'linkedin.com/in/yourname', answer: (t) => (/^skip$/i.test(t.trim()) ? [] : [{ op: 'set', path: 'basics.profiles', value: [{ network: /linkedin/i.test(t) ? 'LinkedIn' : 'Website', url: t.trim() }] }]) });
+    if (!(b.profiles || []).length && !b.url) out.push({ id: 'link', step, kind: 'ask', title: 'Add a profile link', why: 'A LinkedIn or portfolio link lets a recruiter check your background in one click.', question: 'Paste your LinkedIn or portfolio link (or type "skip").', placeholder: 'linkedin.com/in/yourname', invalid: 'That does not look like a web address. Paste a link such as linkedin.com/in/yourname, or type skip.',
+      answer: (t) => { if (/^skip$/i.test(t.trim())) return []; const url = safeUrl(t); return url ? [{ op: 'set', path: 'basics.profiles', value: [{ network: /linkedin/i.test(url) ? 'LinkedIn' : 'Website', url }] }] : null; } });
 
     // Order: newest first.
     const dated = work.filter((w) => w.startDate);
@@ -180,11 +205,18 @@ export function coachSuggestions(resume, step) {
       const where = `${w.position || 'Role'}${w.name ? ', ' + w.name : ''}`;
       if (hl.length < 2) out.push({ id: `few-${i}`, step, kind: 'ask', title: `Add a result to ${where}`, why: 'Roles with one bullet or none look thin. Two to five bullets is typical.',
         question: `What is one thing you achieved as ${w.position || 'this role'}${w.name ? ' at ' + w.name : ''}? Include a number if you can.`, placeholder: 'e.g. Trained 12 new staff, cutting onboarding time by a week',
+        confirm: true,
         answer: (t) => [{ op: 'addBullet', path: `work.${i}`, value: cap(t.trim().replace(/\.$/, '')) }] });
       hl.forEach((h, j) => {
         const path = `work.${i}.highlights.${j}`;
         const strong = strengthenOpener(h);
-        if (strong && strong !== h) out.push({ id: `opener-${i}-${j}`, step, kind: 'patch', title: 'Start with an action verb', why: `"${words(h).slice(0, 3).join(' ')}…" describes a duty. Starting with what you did reads stronger.`, where, bullet: h,
+        const scope = strong ? null : scopeQuestion(h);
+        if (scope) out.push({ id: `scope-${i}-${j}`, step, kind: 'ask', title: 'Say what you did', where, bullet: h,
+          why: `"${words(h).slice(0, 3).join(' ')}…" describes a duty, not what you did. Only you know how much of it was yours.`,
+          question: `"${h}"\nWhich is true? Type one: led, managed, handled or supported (or "skip").`, placeholder: 'e.g. managed',
+          invalid: 'Type one of: led, managed, handled or supported. Or press Skip.',
+          answer: (t) => { if (/^skip$/i.test(t.trim())) return []; const v = readScopeVerb(t); return v ? [{ op: 'set', path, value: `${v} ${scope.object}` }] : null; } });
+        else if (strong && strong !== h) out.push({ id: `opener-${i}-${j}`, step, kind: 'patch', title: 'Start with an action verb', why: `"${words(h).slice(0, 3).join(' ')}…" describes a duty. Starting with what you did reads stronger.`, where, bullet: h,
           fields: [{ label: 'Before', value: h, readonly: true, old: true }, { label: 'After', path, value: strong }], ops: [{ op: 'set', path, value: strong }] });
         else if (FIRST_PERSON.test(h)) { const v = removeFirstPerson(h); if (v !== h) out.push({ id: `fp-${i}-${j}`, step, kind: 'patch', title: 'Drop "I" and "my"', why: 'Resume bullets are written without personal pronouns.', where, bullet: h, fields: [{ label: 'Before', value: h, readonly: true, old: true }, { label: 'After', path, value: v }], ops: [{ op: 'set', path, value: v }] }); }
         const parts = words(h).length > 32 ? splitLong(h) : null;
@@ -193,11 +225,14 @@ export function coachSuggestions(resume, step) {
         if (!NUMBER_RE.test(h) && words(h).length >= 4) out.push({ id: `num-${i}-${j}`, step, kind: 'ask', title: 'Add a number to this bullet', where, bullet: h,
           why: 'Numbers (how many, how much, how often) make a result concrete. Only add one you know is true.',
           question: `"${h}"\nHow many, how much, or how often? Type just the detail to add, or "skip".`, placeholder: 'e.g. for 25 rental units / saving $40K a year',
-          answer: (t) => (/^skip$/i.test(t.trim()) ? [] : [{ op: 'set', path, value: `${h.replace(/[.\s]+$/, '')} ${/^[,(]/.test(t.trim()) ? '' : ''}${t.trim().replace(/^[,\s]+/, '')}`.replace(/\s+/g, ' ') }]) });
+          invalid: 'Include the number itself (for example "for 25 units" or "about $40K a year"), or type skip.',
+          confirm: true,
+          answer: (t) => { if (/^skip$/i.test(t.trim())) return []; if (!NUMBER_RE.test(t)) return null;
+            return [{ op: 'set', path, value: `${h.replace(/[.\s]+$/, '')} ${t.trim().replace(/^[,\s]+/, '')}`.replace(/\s+/g, ' ') }]; } });
       });
     });
     // Most valuable first: verbs and pronouns, then splits, then numbers, then gaps.
-    const rank = (s) => (s.id.startsWith('opener') || s.id.startsWith('fp') ? 0 : s.id.startsWith('long') ? 1 : s.id.startsWith('few') ? 2 : 3);
+    const rank = (s) => (s.id.startsWith('opener') || s.id.startsWith('scope') || s.id.startsWith('fp') ? 0 : s.id.startsWith('long') ? 1 : s.id.startsWith('few') ? 2 : 3);
     out.sort((a, c) => rank(a) - rank(c));
   }
 
@@ -240,13 +275,29 @@ export function draftSummary(r) {
   const work = (r.work || []).filter((w) => w.position);
   if (!work.length) return '';
   const latest = [...work].sort((a, b) => dateKey(b.startDate) - dateKey(a.startDate))[0];
-  const years = (() => { const ys = work.map((w) => Number(String(w.startDate || '').slice(0, 4))).filter(Boolean); return ys.length ? new Date().getFullYear() - Math.min(...ys) : 0; })();
+  // Years count only roles with the same title as the latest one (ignoring "Senior", "Lead", "II"…),
+  // so 3 years as a manager after 12 in other jobs is not "Manager with 15+ years".
+  const years = yearsInRole(work, latest);
   const skills = [...new Set((r.skills || []).flatMap((s) => s.keywords || []))].slice(0, 4);
   const best = work.flatMap((w) => w.highlights || []).find((h) => NUMBER_RE.test(h) && words(h).length <= 24);
   const title = r.basics?.label || latest.position.replace(/^owner\s*&\s*/i, '');
   let s = `${cap(title)}${years >= 2 ? ` with ${years}+ years of experience` : ''}${skills.length ? ` in ${skills.slice(0, -1).join(', ')}${skills.length > 1 ? ' and ' : ''}${skills[skills.length - 1]}` : ''}.`;
   if (best) s += ` ${best.replace(/\.$/, '')}.`;
   return s;
+}
+
+const LEVEL_WORDS = /\b(senior|sr|junior|jr|lead|principal|staff|associate|assistant|trainee|intern|head of|i{1,3}|iv)\b/g;
+const roleKey = (t) => String(t || '').toLowerCase().replace(/[^a-z& ]/g, ' ').replace(LEVEL_WORDS, ' ').replace(/\s+/g, ' ').trim();
+const yearOf = (d) => Number(String(d || '').slice(0, 4)) || 0;
+
+/** Whole years spent in roles with the same title as `latest`, from the first such start to the latest end (or now). */
+export function yearsInRole(work, latest, now = new Date()) {
+  const key = roleKey(latest.position);
+  if (!key) return 0;
+  const starts = work.filter((w) => roleKey(w.position) === key).map((w) => yearOf(w.startDate)).filter(Boolean);
+  if (!starts.length) return 0;
+  const end = latest.endDate ? yearOf(latest.endDate) : now.getFullYear();
+  return Math.max(0, end - Math.min(...starts));
 }
 
 /** Progress for the step list: how many suggestions remain per step. */

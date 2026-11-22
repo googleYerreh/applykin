@@ -2,7 +2,7 @@
 import * as pdfjs from 'pdfjs-dist/build/pdf.mjs';
 import workerSource from 'pdfjs-dist/build/pdf.worker.min.mjs';
 import mammoth from 'mammoth/mammoth.browser.min.js';
-import { parseResume, scoreResume, renderResumeHTML, renderLetterHTML, extractPdfText, extractDocxText, detectKind, RUBRIC, CATEGORIES, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN, ATS_LEVELS, PARSER_VERSION, isActionVerb, EVIDENCE_LEVELS, EVIDENCE_SOURCES } from '../core/index.js';
+import { parseResume, scoreResume, renderResumeHTML, renderLetterHTML, extractPdfText, extractDocxText, detectKind, hiddenTextNote, stripInvisible, RUBRIC, CATEGORIES, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN, ATS_LEVELS, PARSER_VERSION, isActionVerb, EVIDENCE_LEVELS, EVIDENCE_SOURCES } from '../core/index.js';
 import { SAMPLES } from './samples.js';
 import { initJobs } from './jobs-ui.js';
 import { initGuide } from './guide.js';
@@ -40,17 +40,18 @@ async function importFile(file) {
   try {
     const buf = new Uint8Array(await file.arrayBuffer());
     const kind = detectKind(file.name, buf);
+    const report = {};
     let resume;
     if (kind === 'json') resume = JSON.parse(new TextDecoder().decode(buf));
     else {
-      const text = kind === 'pdf' ? await extractPdfText(pdfjs, buf)
-        : kind === 'docx' ? await extractDocxText(mammoth, buf.buffer)
-        : new TextDecoder().decode(buf);
+      const text = kind === 'pdf' ? await extractPdfText(pdfjs, buf, report)
+        : kind === 'docx' ? await extractDocxText(mammoth, buf.buffer, report)
+        : (() => { const s = stripInvisible(new TextDecoder().decode(buf)); report.invisibleChars = s.removed; return s.text; })();
       resume = parseResume(text);
     }
     state.fileName = file.name;
     load(resume);
-    setStatus('');
+    setStatus(hiddenTextNote(report));
   } catch (e) {
     console.error(e);
     setStatus(`Couldn't read that file (${e.message}). Try a PDF exported from Word or Google Docs, a .docx, or paste the text.`, true);

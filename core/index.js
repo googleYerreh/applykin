@@ -1,7 +1,8 @@
 export { parseResume, normalizeDate, findDateRange, PARSER_VERSION } from './parse.js';
 export { scoreResume, RUBRIC, CATEGORIES, isActionVerb, EVIDENCE_LEVELS, EVIDENCE_SOURCES, RULE_EVIDENCE } from './score.js';
 export { renderResumeHTML, renderLetterHTML, formatDate, LOCALES, TEMPLATES, FONTS, ACCENTS, DEFAULT_DESIGN, ATS_LEVELS } from './render.js';
-export { extractPdfText, extractDocxText, detectKind } from './extract.js';
+export { extractPdfText, extractDocxText, detectKind, hiddenTextNote } from './extract.js';
+export { safeUrl, stripInvisible, newFacts } from './safety.js';
 export { SOURCES, fetchSource, fetchBoards, dedupeJobs, finalizeJob, htmlToText, decodeEntities, jobTypeOf, JOB_TYPE_LABELS } from './jobs.js';
 export { parsePlace, userPlace, proximity, tierRank, countryFromTimeZone, TIERS, COUNTRIES, US_STATES } from './geo.js';
 export { rankJobs, matchJob, extractSkills, resumeProfile, buildIndex, SKILL_VOCAB, MATCH_BANDS, matchBand } from './match.js';

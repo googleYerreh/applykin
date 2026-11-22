@@ -4,6 +4,8 @@ import { rankJobs, tailorResume, templateLetter, letterPrompt, generate, PROVIDE
 import { SAMPLE_JOBS } from './sample-jobs.js';
 import RANK_WORKER_SRC from 'rank-worker-src';
 import { userPlace, proximity, tierRank, countryFromTimeZone, COUNTRIES, JOB_TYPE_LABELS, jobTypeOf, matchBand } from '../core/index.js';
+import { safeUrl, newFacts } from '../core/safety.js';
+import { resumeText } from '../core/match.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -56,7 +58,7 @@ export function initJobs(ctx) {
     const title = $('#pj-title').value.trim(), company = $('#pj-company').value.trim(), description = $('#pj-desc').value.trim(), url = $('#pj-url').value.trim();
     if (!title || description.length < 40) return status('Add a job title and paste the full job description.', true);
     const job = { id: `pasted:${Date.now()}`, source: 'pasted', sourceLabel: 'Pasted', attribution: 'Pasted by you', company: company || 'Unknown company', title, location: '', remote: /remote/i.test(description),
-      description, url: url || '', applyUrl: url || '', postedAt: new Date().toISOString(), salary: null };
+      description, url: safeUrl(url), applyUrl: safeUrl(url), postedAt: new Date().toISOString(), salary: null };
     st.jobs = [{ ...job, jobType: jobTypeOf(job) }, ...st.jobs]; jobsGen++;
     ['#pj-title', '#pj-company', '#pj-desc', '#pj-url'].forEach((s) => ($(s).value = ''));
     save(); renderList(); select(job.id);
@@ -312,7 +314,7 @@ export function initJobs(ctx) {
             <div class="row-btns"><button type="button" class="btn" data-dl="resume">Resume (PDF)</button><button type="button" class="btn ghost" data-dl="letter">Cover letter (PDF)</button><button type="button" class="btn ghost small" data-copy-letter>Copy letter text</button></div>
             <small>Saved as "${esc(name)} – ${esc(slug(job.company))} – ${esc(slug(job.title))}". In the print window, choose "Save as PDF".</small></li>
           <li><b>Open the employer's application</b>
-            <div class="row-btns">${job.applyUrl ? `<a class="btn" href="${esc(job.applyUrl)}" target="_blank" rel="noopener" data-opened>Open application ↗</a>` : '<span class="hint">No application link for this job. Use the link in the job ad.</span>'}</div>
+            <div class="row-btns">${safeUrl(job.applyUrl) ? `<a class="btn" href="${esc(safeUrl(job.applyUrl))}" target="_blank" rel="noopener" data-opened>Open application ↗</a>` : '<span class="hint">No application link for this job. Use the link in the job ad.</span>'}</div>
             <small>Upload the resume and letter, and paste answers below. Check everything before you submit.</small></li>
           <li><b>Copy your answers</b>
             ${answers.length ? `<ul class="answers">${answers.map(([label, val], i) => `<li><span>${esc(label)}</span><b>${esc(val)}</b><button type="button" class="btn ghost small" data-copy-answer="${i}">Copy</button></li>`).join('')}</ul>` : ''}
@@ -355,9 +357,14 @@ export function initJobs(ctx) {
     const note = $('#letter-note'), btn = $('#ai-letter');
     btn.disabled = true; note.textContent = `Asking ${PROVIDERS[st.ai.provider].label}…`;
     try {
-      const out = await generate(st.ai, letterPrompt(t.tailoredResume, job, $('#letter-text').value, { locale: ctx.getLocale() }));
+      const draft = $('#letter-text').value;
+      const out = await generate(st.ai, letterPrompt(t.tailoredResume, job, draft, { locale: ctx.getLocale() }));
       d.letter = out; $('#letter-text').value = out; save();
-      note.textContent = 'AI draft. Check every sentence against your real experience before sending.';
+      // Never-invent, checked at runtime: numbers and skills in the letter that are not on the resume.
+      const added = newFacts(out, [resumeText(t.tailoredResume), draft, job.title, job.company], { names: false });
+      note.textContent = added.length
+        ? `Check before sending: the AI mentions ${added.slice(0, 6).join(', ')}, which ${added.length === 1 ? 'is' : 'are'} not on your resume. Remove anything that isn't true.`
+        : 'AI draft. Check every sentence against your real experience before sending.';
     } catch (e) {
       note.textContent = `AI request failed: ${e.message}${st.ai.provider === 'ollama' ? ' (Is Ollama running? Start it with OLLAMA_ORIGINS=* so this page may call it.)' : ''}`;
     } finally { btn.disabled = false; }
@@ -412,7 +419,7 @@ export function initJobs(ctx) {
           <div class="job-meta">${esc(a.job.company)}${a.job.location ? ' · ' + esc(a.job.location) : ''}</div>
           <select data-stage aria-label="Stage">${STAGES.map((x) => `<option value="${x}" ${x === a.stage ? 'selected' : ''}>${STAGE_LABELS[x]}</option>`).join('')}</select>
           <textarea data-notes rows="2" placeholder="Notes: contact, dates, next step">${esc(a.notes)}</textarea>
-          <div class="card-actions"><button type="button" data-open>Letter &amp; fit</button>${a.job.applyUrl ? `<a href="${esc(a.job.applyUrl)}" target="_blank" rel="noopener">Posting ↗</a>` : ''}<button type="button" data-remove>Remove</button></div>
+          <div class="card-actions"><button type="button" data-open>Letter &amp; fit</button>${safeUrl(a.job.applyUrl) ? `<a href="${esc(safeUrl(a.job.applyUrl))}" target="_blank" rel="noopener">Posting ↗</a>` : ''}<button type="button" data-remove>Remove</button></div>
           ${a.sent ? `<div class="card-sent">Sent ${new Date(a.sent.appliedAt).toLocaleDateString()} · ${a.sent.tailored ? 'tailored' : 'main'} resume · quality ${a.sent.quality} · ATS ${a.sent.ats}</div>` : ''}
           <div class="card-date">Updated ${new Date(a.updatedAt).toLocaleDateString()}</div>
         </div>`).join('') || '<div class="col-empty">—</div>'}</div>`;
