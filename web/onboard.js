@@ -56,7 +56,7 @@ export function initOnboard({ el, getPlace, setPrefs, finish }) {
     }
     save();
     if (i < Q.length - 1) { i++; render(); return; }
-    apply(); finish(a);
+    a.done = true; save(); apply(); finish(a);
   }
 
   el.addEventListener('click', (e) => {
@@ -71,9 +71,9 @@ export function initOnboard({ el, getPlace, setPrefs, finish }) {
     }
     if (b.hasAttribute('data-ob-next')) next();
     if (b.hasAttribute('data-ob-back')) { i = Math.max(0, i - 1); render(); }
-    if (b.hasAttribute('data-ob-skip')) finish(a);
+    if (b.hasAttribute('data-ob-skip')) { a.skipped = true; save(); finish(a); }
   });
   el.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') next(); });
 
-  return { start() { i = 0; render(); }, answers: () => a };
+  return { start() { i = 0; render(); }, answers: () => a, done: () => !!(a.done || a.skipped) };
 }

@@ -539,18 +539,28 @@ function openPanel(sel) {
 }
 let onboardUI = null;
 let pendingIntent = '';
+let onboardTarget = '';
 function showPage(id) {
   const el = $('#page');
   if (el.dataset.id !== id) {
     el.dataset.id = id;
-    el.innerHTML = renderPage(id);
-    el.querySelectorAll('[data-rail]').forEach((r) => homeUI.renderRail(r, { scores: true }));
+    el.innerHTML = renderPage(id, { quality: scoreResume(sampleOf('strong'), { template: 'classic' }).quality, weak: scoreResume(sampleOf('weak'), { template: 'classic' }).quality });
+    el.querySelectorAll('[data-rail]').forEach((r) => homeUI.renderRail(r, r.dataset.rail === 'before-after' ? { beforeAfter: true } : { scores: true }));
+    el.querySelectorAll('[data-scroll-rail]').forEach((b) => b.addEventListener('click', () => {
+      const rail = b.closest('section').querySelector('.h-rail');
+      rail.scrollBy({ left: Number(b.dataset.scrollRail) * rail.clientWidth * 0.8, behavior: 'smooth' });
+    }));
   }
   document.title = `${PAGES[id] ? el.querySelector('h1').textContent : 'Applykin'} · Applykin`;
 }
 function showTab(name) {
   let pageId = '';
   if (name.startsWith('page/') && PAGES[name.slice(5)]) { pageId = name.slice(5); }
+  if (name.startsWith('go/')) {
+    const target = name.slice(3);
+    if (!onboardUI?.done()) { onboardTarget = target; name = 'onboard'; }
+    else { location.replace('#' + target); return; }
+  }
   if (name === 'get-started') name = 'onboard';
   const route = ROUTES[name];
   if (route) name = route.tab;
@@ -617,18 +627,22 @@ document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('clic
 $('#score-pill').addEventListener('click', (e) => { e.preventDefault(); showTab('resume'); if (state.mode === 'guided') setStep('overview'); });
 if (state.resume) refresh();
 document.querySelectorAll('nav.tabs button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
-let sampleResume = null;
+const sampleCache = {};
+const sampleOf = (k) => (sampleCache[k] ||= parseResume(SAMPLES[k]));
 homeUI = initHome({
   templates: TEMPLATES,
   atsLabel: (k) => (k === 'caution' ? 'Email & networking' : ATS_LEVELS[k].label),
-  renderTemplate: (t) => renderResumeHTML((sampleResume ||= parseResume(SAMPLES.strong)), { template: t, locale: 'us' }),
-  atsScore: (t) => scoreResume((sampleResume ||= parseResume(SAMPLES.strong)), { template: t }).ats,
+  renderTemplate: (t, k = 'strong') => renderResumeHTML(sampleOf(k), { template: t, locale: 'us' }),
+  atsScore: (t) => scoreResume(sampleOf('strong'), { template: t }).ats,
+  qualityOf: (k) => scoreResume(sampleOf(k), { template: 'classic' }).quality,
 });
 onboardUI = initOnboard({
   el: $('#onboard'),
   getPlace: () => jobsUI.getPlace(),
   setPrefs: (p) => jobsUI.setPrefs(p),
   finish: (a) => {
+    const target = onboardTarget; onboardTarget = '';
+    if (target) { location.hash = target; return; }
     if (state.resume) { location.hash = 'jobs'; return; }
     pendingIntent = a.looking === 'no'
       ? 'Last step: add your resume, and Applykin will help you get it ready for later.'

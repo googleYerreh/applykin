@@ -156,20 +156,36 @@ const FAQS = {
 
 const ORDER = ['resume-builder', 'ats-checker', 'resume-checker', 'designs', 'job-search', 'side-income', 'apply', 'cover-letter', 'tracker'];
 
-export function renderPage(id) {
+const RESUME_PAGES = ['resume-builder', 'ats-checker', 'resume-checker', 'designs'];
+// The dark "what we consider" card: real numbers come from the app (sample resume scores).
+function scoreCard(id, nums) {
+  const resume = RESUME_PAGES.includes(id);
+  const n = resume ? nums.quality : 87;
+  const title = resume ? 'Your personal resume score' : 'Your match score for each job';
+  const text = resume
+    ? 'Calculated from what is on your resume and how it is laid out, with every rule shown.'
+    : 'Calculated from your skills, the titles you have held, and the wording of each job ad.';
+  const chips = resume ? ['Completeness', 'Structure', 'Clarity', 'ATS readability'] : ['Skills', 'Job title', 'Wording', 'Distance'];
+  return `<div class="p-scorecard"><div class="mini-ring big" style="--v:${n}"><b>${n}</b><small>/ 100</small></div>
+    <div class="p-sc-text"><h3>${esc(title)}</h3><p>${esc(text)}</p><div class="p-chips">${chips.map((c) => `<span>${esc(c)}</span>`).join('')}</div></div><span class="p-sc-n">01</span></div>`;
+}
+
+/** @param {string} id page id  @param {{quality:number, weak:number}} nums real sample scores */
+export function renderPage(id, nums = { quality: 98, weak: 46 }) {
   const p = PAGES[id];
   if (!p) return '';
-  const ctaHref = p.ctaHref || `#${id}`;
-  const next = ORDER.filter((k) => k !== id && !(['ats-checker', 'resume-checker'].includes(k))).slice(0, 8);
-  const nextFour = (['resume-builder', 'ats-checker', 'resume-checker', 'designs'].includes(id) ? ['job-search', 'apply', 'cover-letter', 'tracker'] : ['resume-builder', ...next.filter((k) => k !== 'resume-builder')]).slice(0, 4);
+  const go = `#go/${id}`;
+  const resume = RESUME_PAGES.includes(id);
+  const nextFour = resume ? ['job-search', 'apply', 'cover-letter', 'tracker'] : ['resume-builder', 'job-search', 'apply', 'cover-letter', 'tracker'].filter((k) => k !== id).slice(0, 4);
+  const nextTitles = { 'job-search': 'Job suggestions matched to you', apply: 'Tailor your resume to the job', 'cover-letter': 'Create a cover letter for the job', tracker: 'Manage all applications in one place', 'resume-builder': 'Build a resume that gets read' };
   return `
   <section class="h-hero p-hero">
-    <p class="h-badge"><b>Free</b> · ${esc(TOOLS[id].group)} · No account</p>
     <h1 class="h-title p-title">${hl(p.title)}</h1>
     <p class="h-lead">${esc(p.lead)}</p>
-    <div class="h-ctas"><a class="btn big" href="${ctaHref}">${esc(p.cta)} <span aria-hidden="true">→</span></a></div>
-    <p class="p-trust">🔒 Your resume stays on your device · Free downloads · Open source</p>
-    ${p.rail ? '<div class="p-rail" data-rail></div>' : `<div class="p-art">${ART[p.art]}</div>`}
+    <div class="h-ctas"><a class="btn big" href="${go}">Get started <span aria-hidden="true">→</span></a></div>
+    <p class="p-trust">🔒 Your resume stays private, on your device</p>
+    <p class="p-facts"><b>100% free</b> · <b>8</b> designs · <b>27</b> checks, all explained · <b>No</b> account needed</p>
+    ${resume ? `<div class="p-rail ba" data-rail="before-after"></div><p class="p-fine">Sample resumes. The "before" is a real weak resume scoring ${nums.weak}; the "after" is a finished one scoring ${nums.quality}.</p>` : `<div class="p-art">${ART[p.art]}</div>`}
   </section>
 
   <section class="h-sec">
@@ -179,49 +195,58 @@ export function renderPage(id) {
   </section>
 
   <section class="p-dark">
-    <p class="p-eyebrow">What Applykin checks</p>
-    <h2>What goes into it</h2>
-    <p class="p-dark-lead">Everything here is shown in the app as well, with the reasons.</p>
+    <p class="p-eyebrow">What we consider</p>
+    <h2>What ${resume ? 'the Applykin resume check' : 'Applykin'} looks at</h2>
+    <p class="p-dark-lead">${resume ? 'Nothing hidden. Each rule, its weight, and how strong the evidence behind it is, are all shown in the app.' : 'Every number has its reasons listed next to it, so you know why a job ranks where it does.'}</p>
+    ${scoreCard(id, nums)}
     <div class="p-dgrid">${p.checks.map(([t, d], i) => `<div class="p-dcard"><span class="p-num">0${i + 1}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></div>`).join('')}</div>
   </section>
 
   <section class="h-sec">
-    <h2 class="h-h2 center">How Applykin helps <span class="hl">next</span></h2>
-    <p class="h-sub center">Everything for your application, in one free app.</p>
+    <h2 class="h-h2 center">How Applykin helps with<br>your application <span class="hl">next</span></h2>
+    <p class="h-sub center">Everything you need for your job search, from resume to cover letter to tracking.</p>
     ${nextFour.map((k, i) => `
     <div class="p-row ${i % 2 ? 'flip' : ''}">
-      <div class="p-row-text"><p class="p-idx">0${i + 1}</p><h3>${esc(TOOLS[k].label)}</h3><p>${esc(TOOLS[k].blurb)}</p><a class="h-link" href="#page/${k}">Learn more →</a></div>
+      <div class="p-row-text"><p class="p-idx">0${i + 1}</p><h3>${esc(nextTitles[k] || TOOLS[k].label)}</h3><p>${esc(TOOLS[k].blurb)}</p><a class="h-link" href="#page/${k}">Learn more →</a></div>
       <a class="p-row-art" href="#page/${k}" aria-label="${esc(TOOLS[k].label)}">${ART[TOOLS[k].art]}</a>
     </div>`).join('')}
   </section>
 
   <section class="p-dark p-tools">
-    <h2>Free tools for your resume and search</h2>
+    <h2>Free tools for your resume</h2>
     <div class="p-tgrid">${['ats-checker', 'resume-checker', 'job-search'].filter((k) => k !== id).slice(0, 2).map((k) => `
-      <a class="p-tool" href="#page/${k}"><span class="p-ti">${k === 'job-search' ? '◎' : k === 'ats-checker' ? '⌕' : '✓'}</span><span class="p-arrow">↗</span><p class="p-eyebrow">${esc(TOOLS[k].group)}</p><h3>${esc(TOOLS[k].label)}</h3><p>${esc(TOOLS[k].blurb)}</p></a>`).join('')}</div>
+      <a class="p-tool" href="#page/${k}"><span class="p-ti">${k === 'job-search' ? '◎' : k === 'ats-checker' ? '⌕' : '✓'}</span><span class="p-arrow">↗</span><p class="p-eyebrow">${k === 'job-search' ? 'Job tools' : 'Resume tools'}</p><h3>${esc(TOOLS[k].label)}</h3><p>${esc(TOOLS[k].blurb)}</p></a>`).join('')}</div>
+  </section>
+
+  <section class="h-designs warm">
+    <div class="h-designs-head">
+      <div><h2>Professional resume and cover letter designs</h2><p>Each design is rated for tracking systems, and your cover letter uses the same look.</p></div>
+      <div class="h-arrows"><button type="button" data-scroll-rail="-1" aria-label="Previous designs">‹</button><button type="button" data-scroll-rail="1" aria-label="Next designs">›</button></div>
+    </div>
+    <div class="h-rail" data-rail="designs"></div>
   </section>
 
   <section class="p-dark p-privacy">
-    <h2>Privacy <span class="hl dark">by design</span></h2>
-    <p class="p-dark-lead">Applykin has no servers holding your data, because it doesn't need any.</p>
+    <h2>Data protection and privacy <span class="hl dark">at Applykin</span></h2>
+    <p class="p-dark-lead">Applykin keeps no servers full of your data, because it doesn't need any.</p>
     <div class="p-pgrid">
       <div><h3>🔒 Stays on your device</h3><p>Reading, scoring, tailoring and PDF export all run in your browser. Your resume is never uploaded.</p></div>
       <div><h3>✓ No account</h3><p>No sign-up, no email list, no tracking pixels. Close the tab and nothing about you is left anywhere else.</p></div>
-      <div><h3>⚙ You're in control</h3><p>Press Start over to delete everything. If you connect an AI key, only the text you send is shared with that provider.</p></div>
+      <div><h3>⚙ You're in control</h3><p>Press Start over to delete everything. If you connect an AI key, only the text you send goes to that provider.</p></div>
       <div><h3>{ } Open source</h3><p>Anyone can read the code and check these promises. <a href="https://github.com/googleYerreh/applykin" target="_blank" rel="noopener">View it on GitHub ↗</a></p></div>
     </div>
   </section>
 
   <section class="h-sec p-faq">
     <h2 class="h-h2">Questions about <span class="hl">${esc(TOOLS[id].label)}</span></h2>
-    <p class="h-sub">Short answers to what people ask most.</p>
-    <div class="p-qgrid">${[...(FAQS[id] || []), ...FAQ_COMMON].slice(0, 6).map(([q, a]) => `<div><h3>${esc(q)}</h3><p>${esc(a)}</p></div>`).join('')}</div>
+    <p class="h-sub">Short answers to the questions job seekers ask most.</p>
+    <div class="p-qgrid">${[...(FAQS[id] || []), ...FAQ_COMMON].slice(0, 8).map(([q, a]) => `<div><h3>${esc(q)}</h3><p>${esc(a)}</p></div>`).join('')}</div>
   </section>
 
   <section class="p-end">
-    <h2>Your next application<br><span class="hl">gets a reply.</span></h2>
-    <a class="btn big" href="${ctaHref}">${esc(p.cta)}, free <span aria-hidden="true">→</span></a>
-    <div class="p-rail end" data-rail></div>
+    <h2>Your next application<br><span class="hl">gets a response.</span></h2>
+    <a class="btn big" href="${go}">Try Applykin now <span aria-hidden="true">→</span></a>
+    <div class="p-rail end" data-rail="designs"></div>
   </section>
   <footer class="h-foot"><span>apply<b>kin</b> · free and open source (AGPL)</span><span><a href="#home">Home</a> · <a href="https://github.com/googleYerreh/applykin" target="_blank" rel="noopener">GitHub</a></span></footer>`;
 }
