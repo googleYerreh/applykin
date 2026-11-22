@@ -595,5 +595,7 @@ homeUI = initHome({
   atsLabel: (k) => (k === 'caution' ? 'Email & networking' : ATS_LEVELS[k].label),
   renderTemplate: (t) => renderResumeHTML((sampleResume ||= parseResume(SAMPLES.strong)), { template: t, locale: 'us' }),
 });
+// The logo always goes home, even when the address already says #home.
+document.querySelector('a.brand').addEventListener('click', (e) => { e.preventDefault(); if (location.hash !== '#home') location.hash = 'home'; else showTab('home'); });
 window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
 showTab(location.hash.slice(1));
