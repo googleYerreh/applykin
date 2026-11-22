@@ -543,6 +543,7 @@ export function initJobs(ctx) {
 
   return {
     onResumeChange() { requestScores(); },
+    hint(msg) { status(msg); },
     onShow(tab) { if (tab === 'jobs') { if (!st.place?.confirmed) st.place = defaultPlace(); renderPlace(); renderList(); } if (tab === 'tracker') renderTracker(); },
     hostedChanged() { renderDetail(); syncSettings(); $('#hosted-note').hidden = !ctx.isHosted(); $('#feed-url').value = defaultFeed(); },
   };

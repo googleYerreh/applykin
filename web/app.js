@@ -6,6 +6,7 @@ import { parseResume, scoreResume, renderResumeHTML, renderLetterHTML, extractPd
 import { SAMPLES } from './samples.js';
 import { initJobs } from './jobs-ui.js';
 import { initGuide } from './guide.js';
+import { initHome } from './home.js';
 
 pdfjs.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }));
 
@@ -514,17 +515,47 @@ async function onPhoto(file) {
   save(); renderEditor(); renderDesign(); refresh();
 }
 
-// ---------- tabs ----------
-const TABS = ['resume', 'jobs', 'tracker', 'settings'];
+// ---------- tabs and routes ----------
+const TABS = ['home', 'resume', 'jobs', 'tracker', 'settings'];
+// Links from the landing page's menu open a tool inside the app.
+const ROUTES = {
+  'resume-builder': { tab: 'resume', intent: 'Add your resume and Applykin walks you through improving it in six short steps.', run: () => setStep('overview') },
+  designs: { tab: 'resume', intent: 'Add your resume to try every design on it.', run: () => setStep('design') },
+  'ats-checker': { tab: 'resume', intent: 'Add your resume to see exactly what a tracking system reads from it.', run: () => openPanel('#readout-panel') },
+  'resume-checker': { tab: 'resume', intent: 'Add your resume to get your two scores and a list of fixes.', run: () => openPanel('#score-panel') },
+  'job-search': { tab: 'jobs' },
+  'side-income': { tab: 'jobs', run: () => $('#side-income').click(), always: true },
+  apply: { tab: 'jobs', hint: 'Pick a job from the list, then press "Apply with Applykin" to get a tailored resume, a letter and your answers.' },
+  'cover-letter': { tab: 'jobs', hint: 'Pick a job, press "Apply with Applykin", then open the Cover letter step. The letter uses only facts from your resume.' },
+};
+function openPanel(sel) {
+  if (state.mode === 'guided' && state.step !== 'overview') setStep('overview');
+  const el = $(sel);
+  if (!el) return;
+  if (el.tagName === 'DETAILS') el.open = true;
+  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+}
 function showTab(name) {
-  if (!TABS.includes(name)) name = 'resume';
+  const route = ROUTES[name];
+  if (route) name = route.tab;
+  if (!TABS.includes(name)) name = state.resume ? 'resume' : 'home';
+  document.body.dataset.view = name === 'home' ? 'home' : 'app';
   document.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== name));
   document.querySelectorAll('nav.tabs button').forEach((b) => b.setAttribute('aria-current', b.dataset.tab === name ? 'page' : 'false'));
   try { if (location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name); } catch {}
+  $('#cta-top').textContent = state.resume ? 'Open my resume' : 'Check my resume';
+  const intent = $('#start-intent');
+  intent.hidden = !(route?.intent && !state.resume);
+  if (route?.intent) intent.textContent = route.intent;
+  if (name === 'home') { homeUI?.onShow(); window.scrollTo(0, 0); } else homeUI?.onHide();
   jobsUI?.onShow(name);
+  if (route?.hint) jobsUI?.hint(route.hint);
+  if (route?.run && (state.resume || route.always)) route.run();
+  else if (route && name !== 'home') window.scrollTo(0, 0);
 }
 
 let jobsUI = null;
+let homeUI = null;
 let guideUI = null;
 init();
 // Print any generated page (tailored resume, cover letter) to PDF; hosted pages save the HTML instead.
@@ -558,5 +589,11 @@ document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('clic
 $('#score-pill').addEventListener('click', (e) => { e.preventDefault(); showTab('resume'); if (state.mode === 'guided') setStep('overview'); });
 if (state.resume) refresh();
 document.querySelectorAll('nav.tabs button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+let sampleResume = null;
+homeUI = initHome({
+  templates: TEMPLATES,
+  atsLabel: (k) => (k === 'caution' ? 'Email & networking' : ATS_LEVELS[k].label),
+  renderTemplate: (t) => renderResumeHTML((sampleResume ||= parseResume(SAMPLES.strong)), { template: t, locale: 'us' }),
+});
 window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
-showTab(location.hash.slice(1) || 'resume');
+showTab(location.hash.slice(1));
