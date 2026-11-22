@@ -7,6 +7,8 @@ import { SAMPLES } from './samples.js';
 import { initJobs } from './jobs-ui.js';
 import { initGuide } from './guide.js';
 import { initHome } from './home.js';
+import { renderPage, PAGES } from './pages.js';
+import { initOnboard } from './onboard.js';
 
 pdfjs.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }));
 
@@ -516,7 +518,7 @@ async function onPhoto(file) {
 }
 
 // ---------- tabs and routes ----------
-const TABS = ['home', 'resume', 'jobs', 'tracker', 'settings'];
+const TABS = ['home', 'page', 'onboard', 'resume', 'jobs', 'tracker', 'settings'];
 // Links from the landing page's menu open a tool inside the app.
 const ROUTES = {
   'resume-builder': { tab: 'resume', intent: 'Add your resume and Applykin walks you through improving it in six short steps.', run: () => setStep('overview') },
@@ -535,19 +537,45 @@ function openPanel(sel) {
   if (el.tagName === 'DETAILS') el.open = true;
   setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
 }
+let onboardUI = null;
+let pendingIntent = '';
+function showPage(id) {
+  const el = $('#page');
+  if (el.dataset.id !== id) {
+    el.dataset.id = id;
+    el.innerHTML = renderPage(id);
+    el.querySelectorAll('[data-rail]').forEach((r) => homeUI.renderRail(r, { scores: true }));
+  }
+  document.title = `${PAGES[id] ? el.querySelector('h1').textContent : 'Applykin'} · Applykin`;
+}
 function showTab(name) {
+  let pageId = '';
+  if (name.startsWith('page/') && PAGES[name.slice(5)]) { pageId = name.slice(5); }
+  if (name === 'get-started') name = 'onboard';
   const route = ROUTES[name];
   if (route) name = route.tab;
   if (!TABS.includes(name)) name = state.resume ? 'resume' : 'home';
-  document.body.dataset.view = name === 'home' ? 'home' : 'app';
+  if (pageId) name = 'page';
+  else if (name === 'page') name = 'home';
+  const marketing = ['home', 'page', 'onboard'].includes(name);
+  document.body.dataset.view = marketing ? 'home' : 'app';
+  document.body.dataset.panel = name;
   document.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== name));
+  if (name === 'page') showPage(pageId);
+  else document.title = 'Applykin — free resume checker and job search';
+  if (name === 'onboard') onboardUI?.start();
   document.querySelectorAll('nav.tabs button').forEach((b) => b.setAttribute('aria-current', b.dataset.tab === name ? 'page' : 'false'));
-  try { if (location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name); } catch {}
-  $('#cta-top').textContent = state.resume ? 'Open my resume' : 'Check my resume';
+  const canon = name === 'page' ? 'page/' + pageId : name === 'onboard' ? 'get-started' : name;
+  try { if (location.hash.slice(1) !== canon) history.replaceState(null, '', '#' + canon); } catch {}
+  $('#cta-top').textContent = state.resume ? 'Open my resume' : 'Get started';
+  $('#cta-top').setAttribute('href', state.resume ? '#resume' : '#get-started');
   const intent = $('#start-intent');
-  intent.hidden = !(route?.intent && !state.resume);
-  if (route?.intent) intent.textContent = route.intent;
-  if (name === 'home') { homeUI?.onShow(); window.scrollTo(0, 0); } else homeUI?.onHide();
+  const intentText = route?.intent || (name === 'resume' ? pendingIntent : '');
+  pendingIntent = '';
+  intent.hidden = !(intentText && !state.resume);
+  if (intentText) intent.textContent = intentText;
+  if (name === 'home') homeUI?.onShow(); else homeUI?.onHide();
+  if (marketing) window.scrollTo(0, 0);
   jobsUI?.onShow(name);
   if (route?.hint) jobsUI?.hint(route.hint);
   if (route?.run && (state.resume || route.always)) route.run();
@@ -594,6 +622,19 @@ homeUI = initHome({
   templates: TEMPLATES,
   atsLabel: (k) => (k === 'caution' ? 'Email & networking' : ATS_LEVELS[k].label),
   renderTemplate: (t) => renderResumeHTML((sampleResume ||= parseResume(SAMPLES.strong)), { template: t, locale: 'us' }),
+  atsScore: (t) => scoreResume((sampleResume ||= parseResume(SAMPLES.strong)), { template: t }).ats,
+});
+onboardUI = initOnboard({
+  el: $('#onboard'),
+  getPlace: () => jobsUI.getPlace(),
+  setPrefs: (p) => jobsUI.setPrefs(p),
+  finish: (a) => {
+    if (state.resume) { location.hash = 'jobs'; return; }
+    pendingIntent = a.looking === 'no'
+      ? 'Last step: add your resume, and Applykin will help you get it ready for later.'
+      : 'Last step: add your resume, and Applykin will rank jobs near you by how well you fit.';
+    location.hash = 'resume';
+  },
 });
 // The logo always goes home, even when the address already says #home.
 document.querySelector('a.brand').addEventListener('click', (e) => { e.preventDefault(); if (location.hash !== '#home') location.hash = 'home'; else showTab('home'); });

@@ -544,6 +544,14 @@ export function initJobs(ctx) {
   return {
     onResumeChange() { requestScores(); },
     hint(msg) { status(msg); },
+    getPlace() { return { ...place() }; },
+    // Answers from the "Get started" questions: where you are, what work, near or remote first.
+    setPrefs({ place: pl, types, sort }) {
+      if (pl) st.place = { city: pl.city || '', region: pl.region || '', country: pl.country || '', confirmed: true };
+      if (types) st.filters.types = types;
+      if (sort) st.sort = sort;
+      save(); renderPlace();
+    },
     onShow(tab) { if (tab === 'jobs') { if (!st.place?.confirmed) st.place = defaultPlace(); renderPlace(); renderList(); } if (tab === 'tracker') renderTracker(); },
     hostedChanged() { renderDetail(); syncSettings(); $('#hosted-note').hidden = !ctx.isHosted(); $('#feed-url').value = defaultFeed(); },
   };

@@ -1,7 +1,7 @@
 // Landing page: header dropdowns, the rotating product preview and the live design rail.
 const $ = (s) => document.querySelector(s);
 
-export function initHome({ renderTemplate, templates, atsLabel }) {
+export function initHome({ renderTemplate, templates, atsLabel, atsScore }) {
   // ---------- header dropdowns: open on hover or click, close on Esc / outside click ----------
   const dds = [...document.querySelectorAll('nav.menu .dd')];
   const setOpen = (dd, open) => {
@@ -45,9 +45,12 @@ export function initHome({ renderTemplate, templates, atsLabel }) {
   function fillRail() {
     if (railDone) return;
     railDone = true;
-    const rail = $('#h-rail');
+    renderRail($('#h-rail'));
+  }
+  // Also used by the product pages. Scores are the sample resume's real ATS readability per design.
+  function renderRail(rail, { scores = false } = {}) {
     rail.innerHTML = Object.entries(templates).map(([k, t]) => `
-      <a class="h-tpl" href="#designs" data-tpl="${k}"><div class="frame"><iframe title="${t.label} design preview" loading="lazy" tabindex="-1"></iframe></div>
+      <a class="h-tpl" href="#designs" data-tpl="${k}"><div class="frame">${scores ? `<span class="tpl-score" data-ats="${t.ats}"><b>${atsScore(k)}</b> ATS</span>` : ''}<iframe title="${t.label} design preview" loading="lazy" tabindex="-1"></iframe></div>
       <p>${t.label}<span data-ats="${t.ats}">${atsLabel(t.ats)}</span></p></a>`).join('');
     rail.querySelectorAll('.h-tpl').forEach((a) => { a.querySelector('iframe').srcdoc = renderTemplate(a.dataset.tpl); });
   }
@@ -63,5 +66,6 @@ export function initHome({ renderTemplate, templates, atsLabel }) {
       rot = setInterval(tick, 4500);
     },
     onHide() { clearInterval(rot); closeAll(); },
+    renderRail,
   };
 }
